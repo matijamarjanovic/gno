@@ -26,7 +26,7 @@ func NewWallet() *Wallet {
 	}
 
 	wallet := &Wallet{
-		Ownable:       ownable.NewWithAddress(caller),
+		Ownable: ownable.NewWithAddress(caller),
 	}
 
 	wallets.Set(string(caller), wallet)
@@ -48,7 +48,7 @@ func NewWallet() *Wallet {
 
 func GetBalances(allBool bool, tokenTypesWanted string, user string) []string {
 	var caller std.Address
-	if(user == "me") {
+	if user == "me" {
 		caller = std.PrevRealm().Addr()
 	} else {
 		caller = getAddressForUsername(user)
@@ -59,8 +59,6 @@ func GetBalances(allBool bool, tokenTypesWanted string, user string) []string {
 		return []string{"No wallet found. Please create a wallet first."}
 	}
 
-	//sb := strings.Builder{}
-
 	allBalances := ""
 
 	if allBool {
@@ -70,6 +68,7 @@ func GetBalances(allBool bool, tokenTypesWanted string, user string) []string {
 	}
 
 	allBalances = strings.TrimPrefix(allBalances, "Balances: ")
+	allBalances = strings.TrimPrefix(allBalances, "Non-Zero Balances: ")
 	allBalancesSlice := strings.Split(allBalances, ",")
 	tokenBalances := []string{}
 	for _, balance := range allBalancesSlice[:len(allBalancesSlice)-1] {
@@ -87,7 +86,6 @@ func GetBalances(allBool bool, tokenTypesWanted string, user string) []string {
 				tokenBalances = append(tokenBalances, tokenKey)
 			}
 		}
-
 	}
 
 	if len(tokenBalances) == 0 {
