@@ -35,15 +35,24 @@ func NewWallet() *Wallet {
 }
 
 // allBool flag is used to get all balances or only non-zero balances
+//
 // tokenType is used to get balances for a specific token type:
 // "token" for standard tokens
 // "nft" for NFTs
 // "multitoken" for MultiTokens
 // any combination of the above with , between them
-// "all" for all balances
+// "" for all balances
+//
+// user is the address/username of the user to get the balances for
+// "me" as the user will get the balances for the caller
 
-func GetMyBalances(allBool bool, tokenTypesWanted string) []string {
-	caller := std.PrevRealm().Addr()
+func GetBalances(allBool bool, tokenTypesWanted string, user string) []string {
+	var caller std.Address
+	if(user == "me") {
+		caller = std.PrevRealm().Addr()
+	} else {
+		caller = getAddressForUsername(user)
+	}
 	_, exists := wallets.Get(string(caller))
 
 	if !exists {
@@ -70,12 +79,12 @@ func GetMyBalances(allBool bool, tokenTypesWanted string) []string {
 		tokenKey := balanceParts[1]
 		if tokenType != "nft" {
 			tokenBalance := balanceParts[2]
-			if strings.Contains(tokenTypesWanted, tokenType) {
+			if strings.Contains(tokenTypesWanted, tokenType) || tokenTypesWanted == "" {
 				tokenBalances = append(tokenBalances, ufmt.Sprintf("%s: %s", tokenKey, tokenBalance))
 			}
 		} else { //if it is an nft balance is not needed
-			if strings.Contains(tokenTypesWanted, tokenType) {
-				tokenBalances = append(tokenKey)
+			if strings.Contains(tokenTypesWanted, tokenType) || tokenTypesWanted == "" {
+				tokenBalances = append(tokenBalances, tokenKey)
 			}
 		}
 
