@@ -41,11 +41,10 @@ func init() {
 	tokenhub.RegisterToken(tokenB.Getter(), "token-b")
 	tokenhub.RegisterToken(tokenC.Getter(), "token-c")
 
-	tokenhub.RegisterGRC1155Token(mtGameItems.Getter(), "sword")
-	tokenhub.RegisterGRC1155Token(mtGameItems.Getter(), "potion")
-	tokenhub.RegisterGRC1155Token(mtArtworks.Getter(), "artwork_1")
-	tokenhub.RegisterGRC1155Token(mtCollectibles.Getter(), "rare_card")
-
+	tokenhub.RegisterMultiToken(mtGameItems.Getter(), "sword")
+	tokenhub.RegisterMultiToken(mtGameItems.Getter(), "potion")
+	tokenhub.RegisterMultiToken(mtArtworks.Getter(), "artwork_1")
+	tokenhub.RegisterMultiToken(mtCollectibles.Getter(), "rare_card")
 }
 
 func MintTestNFTs(to std.Address) error {

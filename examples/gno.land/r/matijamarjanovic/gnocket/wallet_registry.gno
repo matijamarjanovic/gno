@@ -62,9 +62,13 @@ func GetBalances(allBool bool, tokenTypesWanted string, user string) []string {
 	allBalances := ""
 
 	if allBool {
-		allBalances = tokenhub.GetUserBalancesAll(string(caller))
+		allBalances = tokenhub.GetUserTokenBalancesNonZero(caller.String()) +
+						tokenhub.GetUserNFTBalances(caller.String()) +
+						tokenhub.GetUserMultiTokenBalancesNonZero(caller.String())
 	} else {
-		allBalances = tokenhub.GetUserBalances(string(caller))
+		allBalances = tokenhub.GetUserTokenBalances(caller.String()) +
+						tokenhub.GetUserNFTBalances(caller.String()) +
+						tokenhub.GetUserMultiTokenBalances(caller.String())
 	}
 
 	allBalances = strings.TrimPrefix(allBalances, "Balances: ")
@@ -96,11 +100,11 @@ func GetBalances(allBool bool, tokenTypesWanted string, user string) []string {
 }
 
 func GetAllTokens() string {
-	return tokenhub.GetAllTokens()
+	return tokenhub.GetAllRegistered()
 }
 
 func GetAllTokensNoNFTs() string {
-	return tokenhub.GetAllTokensNoNFTs()
+	return tokenhub.GetAllTokens() + tokenhub.GetAllMultiTokens()
 }
 
 func getAddressForUsername(addrOrName string) std.Address {

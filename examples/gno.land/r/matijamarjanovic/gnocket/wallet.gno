@@ -30,10 +30,17 @@ func assertOwnership() {
 
 func GetBalancesRaw() string {
 	assertOwnership()
-	return tokenhub.GetMyBalancesOrigCaller()
+	caller := std.PrevRealm().Addr()
+	return tokenhub.GetUserTokenBalancesNonZero(caller.String()) +
+		tokenhub.GetUserNFTBalances(caller.String()) +
+		tokenhub.GetUserMultiTokenBalancesNonZero(caller.String())
 }
 
-func GetAllBalancesRaw() string {
+func GetBalancesRawWithZeros() string {
 	assertOwnership()
-	return tokenhub.GetMyBalancesAllOrigCaller()
+	caller := std.PrevRealm().Addr()
+	return tokenhub.GetUserTokenBalances(caller.String()) +
+		tokenhub.GetUserNFTBalances(caller.String()) +
+		tokenhub.GetUserMultiTokenBalances(caller.String())
 }
+

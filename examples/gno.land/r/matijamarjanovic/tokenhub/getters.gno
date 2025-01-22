@@ -147,6 +147,7 @@ func getNFTBalances(input string) string {
 }
 
 // getTokenBalances returns a string of all the tokens the user owns
+// if nonZero is true, it will only return the tokens that have a balance greater than 0
 func getTokenBalances(input string, nonZero bool) string {
 	addr := getAddressForUsername(input)
 	if !addr.IsValid() {
@@ -169,6 +170,7 @@ func getTokenBalances(input string, nonZero bool) string {
 }
 
 // getMultiTokenBalances returns a string of all the multi-tokens the user owns
+// if nonZero is true, it will only return the tokens that have a balance greater than 0
 func getMultiTokenBalances(input string, nonZero bool) string {
 	addr := getAddressForUsername(input)
 	if !addr.IsValid() {
