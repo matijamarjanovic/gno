@@ -1,1 +1,1 @@
-module gno.land/r/matijamarjanovic/gnomine
+module gno.land/r/matijamarjanovic/p/gnomine

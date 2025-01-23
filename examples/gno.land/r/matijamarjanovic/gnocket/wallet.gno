@@ -5,7 +5,7 @@ import (
 	//	"strings"
 	"gno.land/p/demo/avl"
 	"gno.land/p/demo/ownable"
-	"gno.land/r/matijamarjanovic/tokenhub"
+	"gno.land/r/demo/tokenhub"
 )
 
 type Wallet struct {

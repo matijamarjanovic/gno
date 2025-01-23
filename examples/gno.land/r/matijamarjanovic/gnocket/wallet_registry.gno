@@ -10,7 +10,7 @@ import (
 	"gno.land/p/demo/ownable"
 	"gno.land/p/demo/ufmt"
 	"gno.land/r/demo/users"
-	"gno.land/r/matijamarjanovic/tokenhub"
+	"gno.land/r/demo/tokenhub"
 )
 
 var (

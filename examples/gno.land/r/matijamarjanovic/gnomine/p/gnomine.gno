@@ -12,12 +12,12 @@ type Pool struct {
     tokenB    string // tokenhub tokenKey
     reserveA  uint64
     reserveB  uint64
-    lpTokens  avl.Tree // key is std.Address, value is uint64 owner->shares work on logic
+    lpTokens  *avl.Tree // key is std.Address, value is uint64 owner->shares work on logic
     totalSupply uint64
 }
 
 type PoolRegistry struct {
-    pools avl.Tree // key is "tokenA:tokenB", value is *Pool
+    pools *avl.Tree // key is "tokenA:tokenB", value is *Pool
 }
 
 func NewPoolRegistry() *PoolRegistry {
@@ -77,10 +77,11 @@ func (p *Pool) AddLiquidity(provider std.Address, amountA, amountB uint64) error
         return errors.New("insufficient liquidity provided")
     }
 
-    // Update pool state
+    // update pool state
     p.reserveA += amountA
     p.reserveB += amountB
-    p.lpTokens[provider] += shares
+    currentShares, _ := p.lpTokens.Get(string(provider))
+    p.lpTokens.Set(string(provider), currentShares.(uint64)+shares)
     p.totalSupply += shares
 
     return nil
