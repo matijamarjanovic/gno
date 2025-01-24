@@ -17,6 +17,8 @@ type Pool struct {
     totalSupply uint64
 }
 
+// todo : move pool registry & constructor to a separate realm, there should be only one pool registry
+
 type PoolRegistry struct {
     pools *avl.Tree // key is "tokenA:tokenB", value is *Pool
 }
