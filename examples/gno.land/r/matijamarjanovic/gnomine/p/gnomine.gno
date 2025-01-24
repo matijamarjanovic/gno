@@ -3,6 +3,7 @@ package gnomine
 import (
     "errors"
     "std"
+    "math"
 
 	"gno.land/p/demo/avl"
 )
@@ -61,7 +62,7 @@ func (p *Pool) AddLiquidity(provider std.Address, amountA, amountB uint64) error
     var shares uint64
     if p.totalSupply == 0 {
         // First liquidity provision
-        //shares = sqrt(amountA * amountB) //todo: implement sqrt
+        shares = uint64(math.Sqrt(float64(amountA * amountB))) //todo: implement sqrt
     } else {
         // Calculate shares based on the proportion of existing reserves
         sharesA := (amountA * p.totalSupply) / p.reserveA
