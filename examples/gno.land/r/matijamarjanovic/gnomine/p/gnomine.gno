@@ -1,4 +1,4 @@
-package gnomine
+package p
 
 import (
     "errors"
@@ -17,18 +17,6 @@ type Pool struct {
     totalSupply uint64
 }
 
-// todo : move pool registry & constructor to a separate realm, there should be only one pool registry
-
-type PoolRegistry struct {
-    pools *avl.Tree // key is "tokenA:tokenB", value is *Pool
-}
-
-func NewPoolRegistry() *PoolRegistry {
-    return &PoolRegistry{
-        pools: avl.NewTree(),
-    }
-}
-
 func createPoolKey(tokenA, tokenB string) string {
     // consistent ordering of tokens
     if tokenA < tokenB {
@@ -36,6 +24,8 @@ func createPoolKey(tokenA, tokenB string) string {
     }
     return tokenB + ":" + tokenA
 }
+
+// todo: get rid of package version, do everything in the same realm r
 
 func (pr *PoolRegistry) CreatePool(tokenA, tokenB string, initialAmountA, initialAmountB uint64) (*Pool, error) {
     if tokenA == tokenB {
