@@ -11,6 +11,7 @@ import (
 )
 
 func CreatePool(tokenA, tokenB string, initialAmountA, initialAmountB uint64) (*Pool, error) {
+	caller := std.PrevRealm().Addr()
 	if tokenA == tokenB {
 		return nil, errors.New("identical tokens")
 	}
@@ -72,7 +73,7 @@ func CreatePool(tokenA, tokenB string, initialAmountA, initialAmountB uint64) (*
 		reserveB:    initialAmountB,
 		lpToken:     lpToken,
 		lpLedger:    lpLedger,
-		totalSupplyLpLp: shares, 
+		totalSupplyLp: shares, 
 	}
 
 	// mint LP tokens to the creator

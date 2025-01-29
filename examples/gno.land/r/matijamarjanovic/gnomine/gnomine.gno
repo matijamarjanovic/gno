@@ -16,7 +16,7 @@ type Pool struct {
     reserveB  uint64
     lpToken   *grc20.Token  // Change to GRC20 token
     lpLedger  *grc20.PrivateLedger
-    totalSupply uint64
+    totalSupplyLp uint64
 }
 
 var(
