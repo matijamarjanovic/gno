@@ -199,6 +199,7 @@ func withdrawLiquidity(p *Pool, caller std.Address, lpAmount uint64) (uint64, ui
 	amountA := (lpAmount * p.reserveA) / p.totalSupplyLp
 	amountB := (lpAmount * p.reserveB) / p.totalSupplyLp
 
+	// todo: fix this makes the tx fail in .Burn function in line 211
 	if err := p.lpLedger.Burn(caller, lpAmount); err != nil {
 		return 0, 0, errors.New(ufmt.Sprintf("failed to burn LP tokens: %v", err))
 	}
