@@ -48,65 +48,7 @@ func CreatePool(tokenA, tokenB string, initialAmountA, initialAmountB uint64) (s
 		return "", err
 	}
 
-	return poolKey, nil
-}
-
-// createPool handles the core pool creation logic. First it takes the tokens from the caller and transfers them to the pool.
-// Then it creates the LP tokens and mints them to the caller. It calculates the initial liquidity based on the sqrt of the product of the two tokens.
-// The pool is then created and added to the pool registry.
-func createPool(creator std.Address, tokenA, tokenB string, initialAmountA, initialAmountB uint64) error {
-	tokenAInstance := tokenhub.GetToken(tokenA)
-	tokenBInstance := tokenhub.GetToken(tokenB)
-	
-	tellerA := tokenAInstance.RealmTeller()
-	if err := tellerA.TransferFrom(
-		creator,      
-		std.CurrentRealm().Addr(),    
-		initialAmountA,               
-	); err != nil {
-		return errors.New(ufmt.Sprintf("failed to transfer token %s: %v", tokenA, err))
-	}
-
-	tellerB := tokenBInstance.RealmTeller()
-	if err := tellerB.TransferFrom(
-		creator,      
-		std.CurrentRealm().Addr(),    
-		initialAmountB,               
-	); err != nil {
-		if refundErr := tellerA.Transfer(creator, initialAmountA); refundErr != nil {
-			panic(ufmt.Sprintf("CRITICAL: failed to refund token %s after failed transfer of token %s: original error: %v, refund error: %v", 
-				tokenA, tokenB, err, refundErr))
-		}
-		return errors.New(ufmt.Sprintf("failed to transfer token %s: %v", tokenB, err))
-	}
-
-	lpName := ufmt.Sprintf("LP %s-%s", tokenA, tokenB)
-	lpSymbol := ufmt.Sprintf("LP-%s-%s", tokenA, tokenB)
-	lpToken, lpLedger := grc20.NewToken(lpName, lpSymbol, 6)
-	tokenhub.RegisterToken(lpToken.Getter(), lpSymbol)
-
-	shares := uint64(math.Sqrt(float64(initialAmountA * initialAmountB)))
-	if shares == 0 {
-		return errors.New("insufficient initial liquidity")
-	}
-
-	pool := &Pool{
-		tokenA:        tokenA,
-		tokenB:        tokenB,
-		reserveA:      initialAmountA,
-		reserveB:      initialAmountB,
-		lpToken:       lpToken,
-		lpLedger:      lpLedger,
-		totalSupplyLp: shares,
-	}
-
-	if err := pool.lpLedger.Mint(creator, shares); err != nil {
-		return errors.New(ufmt.Sprintf("failed to mint LP tokens: %v", err))
-	}
-
-	poolRegistry.pools.Set(createPoolKey(tokenA, tokenB), pool)
-
-	return nil
+	return "succesfully created pool " + poolKey, nil
 }
 
 // AddLiquidity is a public function that allows the caller to add liquidity to the pool for the given pool key.
@@ -123,20 +65,27 @@ func AddLiquidity(poolKey string, amountA, amountB uint64) error {
 // WithdrawLiquidity is a public function that allows the caller to withdraw liquidity from the pool.
 // Poolkey is constucted by concatenating the two tokens in alphabetical order with a colon between them.
 func WithdrawLiquidity(poolKey string, lpAmount uint64) (uint64, uint64, error) {
-	pool, exists := poolRegistry.pools.Get(poolKey)
+	poolInterface, exists := poolRegistry.pools.Get(poolKey)
 	if !exists {
 		return 0, 0, errors.New("pool not found")
 	}
+
+	pool, ok := poolInterface.(*Pool)
+	if !ok {
+		return 0, 0, errors.New("invalid pool type in registry")
+	}
+
 	if lpAmount == 0 {
 		return 0, 0, errors.New("cannot withdraw zero liquidity")
 	}
 
 	caller := std.PrevRealm().Addr()
-	lpBalance := pool.(*Pool).GetLPBalance(caller)
+	lpBalance := pool.GetLPBalance(caller)
 	if lpBalance < lpAmount {
 		return 0, 0, errors.New("insufficient LP token balance")
 	}
-	return withdrawLiquidityInternal(pool.(*Pool), caller, lpAmount)
+
+	return withdrawLiquidity(pool, caller, lpAmount)
 }
 
 
@@ -254,9 +203,13 @@ func withdrawLiquidity(p *Pool, caller std.Address, lpAmount uint64) (uint64, ui
 		return 0, 0, errors.New(ufmt.Sprintf("failed to burn LP tokens: %v", err))
 	}
 
-	p.reserveA -= amountA
-	p.reserveB -= amountB
-	p.totalSupplyLp -= lpAmount
+	newReserveA := p.reserveA - amountA
+	newReserveB := p.reserveB - amountB
+	newTotalSupply := p.totalSupplyLp - lpAmount
+
+	p.reserveA = newReserveA
+	p.reserveB = newReserveB
+	p.totalSupplyLp = newTotalSupply
 
 	tokenAInstance := tokenhub.GetToken(p.tokenA)
 	tokenBInstance := tokenhub.GetToken(p.tokenB)
@@ -272,4 +225,62 @@ func withdrawLiquidity(p *Pool, caller std.Address, lpAmount uint64) (uint64, ui
 	}
 
 	return amountA, amountB, nil
+}
+
+// createPool handles the core pool creation logic. First it takes the tokens from the caller and transfers them to the pool.
+// Then it creates the LP tokens and mints them to the caller. It calculates the initial liquidity based on the sqrt of the product of the two tokens.
+// The pool is then created and added to the pool registry.
+func createPool(creator std.Address, tokenA, tokenB string, initialAmountA, initialAmountB uint64) error {
+	tokenAInstance := tokenhub.GetToken(tokenA)
+	tokenBInstance := tokenhub.GetToken(tokenB)
+	
+	tellerA := tokenAInstance.RealmTeller()
+	if err := tellerA.TransferFrom(
+		creator,      
+		std.CurrentRealm().Addr(),    
+		initialAmountA,               
+	); err != nil {
+		return errors.New(ufmt.Sprintf("failed to transfer token %s: %v", tokenA, err))
+	}
+
+	tellerB := tokenBInstance.RealmTeller()
+	if err := tellerB.TransferFrom(
+		creator,      
+		std.CurrentRealm().Addr(),    
+		initialAmountB,               
+	); err != nil {
+		if refundErr := tellerA.Transfer(creator, initialAmountA); refundErr != nil {
+			panic(ufmt.Sprintf("CRITICAL: failed to refund token %s after failed transfer of token %s: original error: %v, refund error: %v", 
+				tokenA, tokenB, err, refundErr))
+		}
+		return errors.New(ufmt.Sprintf("failed to transfer token %s: %v", tokenB, err))
+	}
+
+	lpName := ufmt.Sprintf("LP %s-%s", tokenA, tokenB)
+	lpSymbol := ufmt.Sprintf("LP-%s-%s", tokenA, tokenB)
+	lpToken, lpLedger := grc20.NewToken(lpName, lpSymbol, 6)
+	tokenhub.RegisterToken(lpToken.Getter(), lpSymbol)
+
+	shares := uint64(math.Sqrt(float64(initialAmountA * initialAmountB)))
+	if shares == 0 {
+		return errors.New("insufficient initial liquidity")
+	}
+
+	pool := &Pool{
+		tokenA:        tokenA,
+		tokenB:        tokenB,
+		reserveA:      initialAmountA,
+		reserveB:      initialAmountB,
+		lpToken:       lpToken,
+		lpLedger:      lpLedger,
+		totalSupplyLp: shares,
+	}
+
+	if err := pool.lpLedger.Mint(creator, shares); err != nil {
+		return errors.New(ufmt.Sprintf("failed to mint LP tokens: %v", err))
+	}
+
+	poolRegistry.pools.Set(createPoolKey(tokenA, tokenB), pool)
+
+	return nil
 }
