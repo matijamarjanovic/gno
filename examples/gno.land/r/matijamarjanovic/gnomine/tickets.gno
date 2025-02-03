@@ -7,6 +7,8 @@ import (
 
 	"gno.land/p/demo/ufmt"
 	"gno.land/r/demo/tokenhub"
+	"gno.land/p/demo/avl"
+	"gno.land/p/demo/avl/pager"
 )
 
 var (
@@ -171,7 +173,6 @@ func FulfillTicket(ticketID string, amountOut uint64) error {
 	}
 
 	if amountOut < ticket.MinAmountOut {
-		println(ticket.MinAmountOut, amountOut)
 		return errors.New("insufficient output amount")
 	}
 
@@ -278,31 +279,25 @@ func GetTicket(ticketID string) (*Ticket, error) {
 	return ticketInterface.(*Ticket), nil
 }
 
-// GetAllTickets returns all tickets in the system, regardless of their status.
-func GetAllTickets() []*Ticket {
-	var allTickets []*Ticket
-	
-	ticketRegistry.tickets.Iterate("", "", func(key string, value interface{}) bool {
-		ticket := value.(*Ticket)
-		allTickets = append(allTickets, ticket)
-		return false
-	})
-	
-	return allTickets
+// GetAllTickets returns a paginated list of all tickets.
+func GetAllTickets(path string) *pager.Page {
+	pager := pager.NewPager(ticketRegistry.tickets, 10, true) 
+	return pager.MustGetPageByPath(path)
 }
 
-// GetOpenTickets returns all open tickets that have not expired.
-func GetOpenTickets() []*Ticket {
-	var openTickets []*Ticket
+// GetOpenTickets returns a paginated list of open, non-expired tickets.
+func GetOpenTickets(path string) *pager.Page {
+	openTickets := avl.NewTree()
 	
 	ticketRegistry.tickets.Iterate("", "", func(key string, value interface{}) bool {
 		ticket := value.(*Ticket)
 		if ticket.Status == "open" && !time.Now().After(ticket.ExpiresAt) {
-			openTickets = append(openTickets, ticket)
+			openTickets.Set(key, ticket)
 		}
 		return false
 	})
 	
-	return openTickets
+	pager := pager.NewPager(openTickets, 2, true)
+	return pager.MustGetPageByPath(path)
 }
 
