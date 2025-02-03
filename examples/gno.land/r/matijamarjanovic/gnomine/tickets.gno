@@ -278,6 +278,19 @@ func GetTicket(ticketID string) (*Ticket, error) {
 	return ticketInterface.(*Ticket), nil
 }
 
+// GetAllTickets returns all tickets in the system, regardless of their status.
+func GetAllTickets() []*Ticket {
+	var allTickets []*Ticket
+	
+	ticketRegistry.tickets.Iterate("", "", func(key string, value interface{}) bool {
+		ticket := value.(*Ticket)
+		allTickets = append(allTickets, ticket)
+		return false
+	})
+	
+	return allTickets
+}
+
 // GetOpenTickets returns all open tickets that have not expired.
 func GetOpenTickets() []*Ticket {
 	var openTickets []*Ticket
