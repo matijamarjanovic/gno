@@ -5,36 +5,15 @@ import (
 	"std"
 	"time"
 
-	"gno.land/p/demo/avl"
 	"gno.land/p/demo/ufmt"
 	"gno.land/r/demo/tokenhub"
 )
 
-type Ticket struct {
-	ID            string      
-	Creator       std.Address 
-	TokenIn       string      
-	TokenOut      string      
-	AmountIn      uint64      
-	MinAmountOut  uint64      
-	CreatedAt     time.Time   
-	ExpiresAt     time.Time   
-	Status        string      
-}
-
-type TicketRegistry struct {
-	tickets *avl.Tree // ticket ID -> *Ticket
-}
-
 var (
-	ticketRegistry *TicketRegistry
 	ticketCounter  uint64
 )
 
 func init() {
-	ticketRegistry = &TicketRegistry{
-		tickets: avl.NewTree(),
-	}
 	ticketCounter = 0
 }
 
@@ -101,6 +80,8 @@ func CreateTicket(tokenIn, tokenOut string, amountIn, minAmountOut uint64, expir
 // If all checks pass, the ticket is fulfilled and the tokens are transferred.
 func FulfillTicket(ticketID string, amountOut uint64) error {
 	caller := std.PrevRealm().Addr()
+
+	// todo: test this
 	
 	ticketInterface, exists := ticketRegistry.tickets.Get(ticketID)
 	if !exists {
@@ -194,7 +175,7 @@ func GetOpenTickets() []*Ticket {
 	
 	ticketRegistry.tickets.Iterate("", "", func(key string, value interface{}) bool {
 		ticket := value.(*Ticket)
-		if ticket.Status == "open" && time.Now().After(ticket.ExpiresAt) {
+		if ticket.Status == "open" && !time.Now().After(ticket.ExpiresAt) {
 			openTickets = append(openTickets, ticket)
 		}
 		return false

@@ -87,6 +87,15 @@ func MintTestTokens(to std.Address) error {
 		return err
 	}
 
+	if err := tokenAAdmin.Mint(std.Address("g1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5"), 1000_000000); err != nil {
+		return err
+	}
+	if err := tokenBAdmin.Mint(std.Address("g1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5"), 10000_000000); err != nil {
+		return err
+	}
+	if err := tokenCAdmin.Mint(std.Address("g1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5"), 100_000000); err != nil {
+		return err
+	}
 	return nil
 }
 
