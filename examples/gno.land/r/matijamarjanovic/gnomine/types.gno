@@ -44,17 +44,18 @@ type TicketRegistry struct {
 	tickets *avl.Tree // ticket ID -> *Ticket
 }
 
+// Types of assets
 type AssetType uint8
-
 const (
     AssetTypeCoin AssetType = iota  // Native coins (like ugnot)
     AssetTypeToken                   // GRC20 tokens
 )
 
+// Asset is a struct shared between coins and tokens
 type Asset struct {
     Type     AssetType
     Denom    string    // for coins (e.g. "ugnot")
-    Token    string    // for GRC20 tokens (e.g. "gno.land/r/demo/token")
+    Token    string    // for GRC20 tokens (e.g. "gno.land/r/test.testtokena")
 }
 
 func NewCoinAsset(denom string) Asset {
