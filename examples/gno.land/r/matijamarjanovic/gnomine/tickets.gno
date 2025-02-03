@@ -17,71 +17,141 @@ func init() {
 	ticketCounter = 0
 }
 
-// CreateTicket creates a new swap ticket. On creation it performs various checks to ensure the ticket is valid.
-// It checks if the tokens exist, if the caller has enough balance, and if the ticket is not expired. 
-// If all checks pass, the amount to be swapped is transferred to the realm, this way there is no race
-// condition with the allowance (since it can also be spent in pools.gno).
-// If all checks pass, the ticket is created and added to the registry.
-func CreateTicket(tokenIn, tokenOut string, amountIn, minAmountOut uint64, expiryHours int64) (string, error) {
+// CreateCoinToTokenTicket creates a ticket to swap native coins for GRC20 tokens.
+// The coins to be swapped must be sent with the transaction. They will be locked in the realm until
+// one of the following happens:
+// - the ticket is fulfilled
+// - the ticket is cancelled
+// - the ticket expires
+func CreateCoinToTokenTicket(
+	coinDenom string,     // e.g. "ugnot"
+	tokenKey string,      // e.g. "gno.land/r/test.gtoken"
+	minAmountOut uint64,  // minimum amount of tokens to receive
+	expiryHours int64,
+) (string, error) {
 	caller := std.PrevRealm().Addr()
 
-	tokenInInstance := tokenhub.GetToken(tokenIn)
-	if tokenInInstance == nil {
-		return "", errors.New(ufmt.Sprintf("token %s not found", tokenIn))
+	sent := std.GetOrigSend()
+	if len(sent) != 1 || sent[0].Denom != coinDenom {
+		return "", errors.New("sent coins don't match ticket parameters")
 	}
+	amountIn := uint64(sent[0].Amount)
 
-	tellerIn := tokenInInstance.RealmTeller()
-	if err := tellerIn.TransferFrom(
-		caller,      
-		std.CurrentRealm().Addr(),    
-		amountIn,               
-	); err != nil {
-		return "", errors.New(ufmt.Sprintf("failed to transfer token %s: %v", tokenIn, err))
-	}
-
-	tokenOutInstance := tokenhub.GetToken(tokenOut)
-	if tokenOutInstance == nil {
-		return "", errors.New(ufmt.Sprintf("token %s not found", tokenOut))
-	}
-
-	balance := tokenInInstance.BalanceOf(caller)
-	if balance < amountIn {
-		return "", errors.New(ufmt.Sprintf("insufficient balance for token %s: have %d, need %d", tokenIn, balance, amountIn))
-	}
-
-	allowance := tokenInInstance.Allowance(caller, std.CurrentRealm().Addr())
-	if allowance < amountIn {
-		return "", errors.New(ufmt.Sprintf("insufficient allowance for token %s: have %d, need %d", tokenIn, allowance, amountIn))
+	tokenOut := tokenhub.GetToken(tokenKey)
+	if tokenOut == nil {
+		return "", errors.New("token not found: " + tokenKey)
 	}
 
 	ticketCounter++
 	ticketID := ufmt.Sprintf("TICKET-%d", ticketCounter)
 	
-	now := time.Now()
 	ticket := &Ticket{
 		ID:           ticketID,
 		Creator:      caller,
-		TokenIn:      tokenIn, // to swap
-		TokenOut:     tokenOut, // to receive
+		AssetIn:      NewCoinAsset(coinDenom),
+		AssetOut:     NewTokenAsset(tokenKey),
 		AmountIn:     amountIn,
 		MinAmountOut: minAmountOut,
-		CreatedAt:    now,
-		ExpiresAt:    now.Add(time.Duration(expiryHours) * time.Hour),
+		CreatedAt:    time.Now(),
+		ExpiresAt:    time.Now().Add(time.Duration(expiryHours) * time.Hour),
 		Status:       "open",
 	}
 
 	ticketRegistry.tickets.Set(ticketID, ticket)
-
 	return ticketID, nil
 }
 
-// FulfillTicket allows a user to fulfill an open ticket.
-// It checks if the ticket is open, if it has not expired, and if the amount out meets the minimum required.
-// If all checks pass, the ticket is fulfilled and the tokens are transferred.
-func FulfillTicket(ticketID string, amountOut uint64) error {
+// CreateTokenToCoinTicket creates a ticket to swap GRC20 tokens for native coins.
+// Requires token approval before creating the ticket.
+func CreateTokenToCoinTicket(
+	tokenKey string,      // e.g. "gno.land/r/test.gtoken"
+	coinDenom string,     // e.g. "ugnot"
+	amountIn uint64,      // amount of tokens to swap
+	minAmountOut uint64,  // minimum amount of coins to receive
+	expiryHours int64,
+) (string, error) {
 	caller := std.PrevRealm().Addr()
 
-	// todo: test this
+	tokenIn := tokenhub.GetToken(tokenKey)
+	if tokenIn == nil {
+		return "", errors.New("token not found: " + tokenKey)
+	}
+
+	tellerIn := tokenIn.RealmTeller()
+	if err := tellerIn.TransferFrom(caller, std.CurrentRealm().Addr(), amountIn); err != nil {
+		return "", errors.New("failed to transfer tokens: " + err.Error())
+	}
+
+	ticketCounter++
+	ticketID := ufmt.Sprintf("TICKET-%d", ticketCounter)
+	
+	ticket := &Ticket{
+		ID:           ticketID,
+		Creator:      caller,
+		AssetIn:      NewTokenAsset(tokenKey),
+		AssetOut:     NewCoinAsset(coinDenom),
+		AmountIn:     amountIn,
+		MinAmountOut: minAmountOut,
+		CreatedAt:    time.Now(),
+		ExpiresAt:    time.Now().Add(time.Duration(expiryHours) * time.Hour),
+		Status:       "open",
+	}
+
+	ticketRegistry.tickets.Set(ticketID, ticket)
+	return ticketID, nil
+}
+
+// CreateTokenToTokenTicket creates a ticket to swap one GRC20 token for another.
+// Requires token approval before creating the ticket.
+func CreateTokenToTokenTicket(
+	tokenInKey string,    // e.g. "gno.land/r/test1.gtokenA"
+	tokenOutKey string,   // e.g. "gno.land/r/test2.gtokenB"
+	amountIn uint64,      // amount of tokens to swap
+	minAmountOut uint64,  // minimum amount of tokens to receive
+	expiryHours int64,
+) (string, error) {
+	caller := std.PrevRealm().Addr()
+
+	tokenIn := tokenhub.GetToken(tokenInKey)
+	if tokenIn == nil {
+		return "", errors.New("token not found: " + tokenInKey)
+	}
+
+	tokenOut := tokenhub.GetToken(tokenOutKey)
+	if tokenOut == nil {
+		return "", errors.New("token not found: " + tokenOutKey)
+	}
+
+	tellerIn := tokenIn.RealmTeller()
+	if err := tellerIn.TransferFrom(caller, std.CurrentRealm().Addr(), amountIn); err != nil {
+		return "", errors.New("failed to transfer tokens: " + err.Error())
+	}
+
+	ticketCounter++
+	ticketID := ufmt.Sprintf("TICKET-%d", ticketCounter)
+	
+	ticket := &Ticket{
+		ID:           ticketID,
+		Creator:      caller,
+		AssetIn:      NewTokenAsset(tokenInKey),
+		AssetOut:     NewTokenAsset(tokenOutKey),
+		AmountIn:     amountIn,
+		MinAmountOut: minAmountOut,
+		CreatedAt:    time.Now(),
+		ExpiresAt:    time.Now().Add(time.Duration(expiryHours) * time.Hour),
+		Status:       "open",
+	}
+
+	ticketRegistry.tickets.Set(ticketID, ticket)
+	return ticketID, nil
+} 
+
+// FulfillTicket allows a user to fulfill an open ticket.
+// If all checks pass, the ticket is fulfilled and the assets are transferred to both parties.
+//
+// note: If the ticket is asking for coins, the amountOut must be the exact amount of coins sent.
+func FulfillTicket(ticketID string, amountOut uint64) error {
+	caller := std.PrevRealm().Addr()
 	
 	ticketInterface, exists := ticketRegistry.tickets.Get(ticketID)
 	if !exists {
@@ -101,34 +171,65 @@ func FulfillTicket(ticketID string, amountOut uint64) error {
 	}
 
 	if amountOut < ticket.MinAmountOut {
-		return errors.New(ufmt.Sprintf("insufficient output amount: minimum %d, provided %d", ticket.MinAmountOut, amountOut))
+		println(ticket.MinAmountOut, amountOut)
+		return errors.New("insufficient output amount")
 	}
 
-	tokenIn := tokenhub.GetToken(ticket.TokenIn)
-	tokenOut := tokenhub.GetToken(ticket.TokenOut)
+	if ticket.AssetOut.Type == AssetTypeCoin {
+		sent := std.GetOrigSend()
+		if len(sent) != 1 || sent[0].Denom != ticket.AssetOut.Denom || uint64(sent[0].Amount) != amountOut {
+			return errors.New("sent coins don't match fulfillment parameters")
+		}
+		
+		banker := std.GetBanker(std.BankerTypeRealmSend)
+		banker.SendCoins(std.CurrentRealm().Addr(), ticket.Creator, sent)
 
-	balance := tokenOut.BalanceOf(caller)
-	if balance < amountOut {
-		return errors.New(ufmt.Sprintf("insufficient balance for token %s: have %d, need %d", ticket.TokenOut, balance, amountOut))
-	}
+		if ticket.AssetIn.Type == AssetTypeCoin {
+			banker.SendCoins(
+				std.CurrentRealm().Addr(),
+				caller,
+				std.Coins{{ticket.AssetIn.Denom, int64(ticket.AmountIn)}},
+			)
+		} else {
+			tokenIn := tokenhub.GetToken(ticket.AssetIn.Token)
+			tellerIn := tokenIn.RealmTeller()
+			if err := tellerIn.Transfer(caller, ticket.AmountIn); err != nil {
+				return errors.New("failed to transfer input token: " + err.Error())
+			}
+		}
+	} else {
+		tokenOut := tokenhub.GetToken(ticket.AssetOut.Token)
+		if tokenOut == nil {
+			return errors.New("token not found: " + ticket.AssetOut.Token)
+		}
 
-	tellerIn := tokenIn.RealmTeller()
-	if err := tellerIn.Transfer(caller, ticket.AmountIn); err != nil {
-		return errors.New(ufmt.Sprintf("failed to transfer input token: %v", err))
-	}
+		tellerOut := tokenOut.RealmTeller()
+		if err := tellerOut.TransferFrom(caller, ticket.Creator, amountOut); err != nil {
+			return errors.New("failed to transfer output token: " + err.Error())
+		}
 
-	tellerOut := tokenOut.RealmTeller()
-	if err := tellerOut.TransferFrom(caller, ticket.Creator, amountOut); err != nil {
-		return errors.New(ufmt.Sprintf("failed to transfer output token: %v", err))
+		if ticket.AssetIn.Type == AssetTypeCoin {
+			banker := std.GetBanker(std.BankerTypeRealmSend)
+			banker.SendCoins(
+				std.CurrentRealm().Addr(),
+				caller,
+				std.Coins{{ticket.AssetIn.Denom, int64(ticket.AmountIn)}},
+			)
+		} else {
+			tokenIn := tokenhub.GetToken(ticket.AssetIn.Token)
+			tellerIn := tokenIn.RealmTeller()
+			if err := tellerIn.Transfer(caller, ticket.AmountIn); err != nil {
+				return errors.New("failed to transfer input token: " + err.Error())
+			}
+		}
 	}
 
 	ticket.Status = "fulfilled"
 	ticketRegistry.tickets.Set(ticketID, ticket)
-
 	return nil
 }
 
-// CancelTicket allows the creator to cancel their ticket and withdraw the tokens before the ticket is expired.
+// CancelTicket allows the creator to cancel their ticket and withdraw the tokens/coins before the ticket is expired.
 func CancelTicket(ticketID string) error {
 	caller := std.PrevRealm().Addr()
 	
@@ -147,15 +248,23 @@ func CancelTicket(ticketID string) error {
 		return errors.New("ticket is not open")
 	}
 
-	tokenIn := tokenhub.GetToken(ticket.TokenIn)
-	tellerIn := tokenIn.RealmTeller()
-	if err := tellerIn.Transfer(ticket.Creator, ticket.AmountIn); err != nil {
-		return errors.New(ufmt.Sprintf("failed to refund tokens: %v", err))
+	if ticket.AssetIn.Type == AssetTypeCoin {
+		banker := std.GetBanker(std.BankerTypeRealmSend)
+		banker.SendCoins(
+			std.CurrentRealm().Addr(),
+			ticket.Creator,
+			std.Coins{{ticket.AssetIn.Denom, int64(ticket.AmountIn)}},
+		)
+	} else {
+		tokenIn := tokenhub.GetToken(ticket.AssetIn.Token)
+		tellerIn := tokenIn.RealmTeller()
+		if err := tellerIn.Transfer(ticket.Creator, ticket.AmountIn); err != nil {
+			return errors.New(ufmt.Sprintf("failed to refund tokens: %v", err))
+		}
 	}
 
 	ticket.Status = "cancelled"
 	ticketRegistry.tickets.Set(ticketID, ticket)
-
 	return nil
 }
 
@@ -182,4 +291,5 @@ func GetOpenTickets() []*Ticket {
 	})
 	
 	return openTickets
-} 
+}
+

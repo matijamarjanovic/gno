@@ -29,18 +29,45 @@ type Pool struct {
 // Ticket is a struct that represents a swap ticket.
 // It holds information about the available swaps
 type Ticket struct {
-	ID            string      
-	Creator       std.Address 
-	TokenIn       string      
-	TokenOut      string      
-	AmountIn      uint64      
-	MinAmountOut  uint64      
-	CreatedAt     time.Time   
-	ExpiresAt     time.Time   
-	Status        string      
+	ID           string
+	Creator      std.Address
+	AssetIn      Asset
+	AssetOut     Asset
+	AmountIn     uint64
+	MinAmountOut uint64
+	CreatedAt    time.Time
+	ExpiresAt    time.Time
+	Status       string
 }
 
 type TicketRegistry struct {
 	tickets *avl.Tree // ticket ID -> *Ticket
+}
+
+type AssetType uint8
+
+const (
+    AssetTypeCoin AssetType = iota  // Native coins (like ugnot)
+    AssetTypeToken                   // GRC20 tokens
+)
+
+type Asset struct {
+    Type     AssetType
+    Denom    string    // for coins (e.g. "ugnot")
+    Token    string    // for GRC20 tokens (e.g. "gno.land/r/demo/token")
+}
+
+func NewCoinAsset(denom string) Asset {
+    return Asset{
+        Type:  AssetTypeCoin,
+        Denom: denom,
+    }
+}
+
+func NewTokenAsset(token string) Asset {
+    return Asset{
+        Type:  AssetTypeToken,
+        Token: token,
+    }
 }
 
