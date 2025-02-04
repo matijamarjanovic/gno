@@ -77,23 +77,23 @@ func MintTestTokens(to std.Address) error {
 		return grc20.ErrInvalidAddress
 	}
 
-	if err := tokenAAdmin.Mint(to, 1_000000); err != nil {
+	if err := tokenAAdmin.Mint(to, 1000_000000); err != nil {
 		return err
 	}
-	if err := tokenBAdmin.Mint(to, 1_000000); err != nil {
+	if err := tokenBAdmin.Mint(to, 1000_000000); err != nil {
 		return err
 	}
-	if err := tokenCAdmin.Mint(to, 1_000000); err != nil {
+	if err := tokenCAdmin.Mint(to, 1000_000000); err != nil {
 		return err
 	}
 
-	if err := tokenAAdmin.Mint(std.Address("g1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5"), 1_000000); err != nil {
+	if err := tokenAAdmin.Mint(std.Address("g1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5"), 1000_000000); err != nil {
 		return err
 	}
-	if err := tokenBAdmin.Mint(std.Address("g1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5"), 1_000000); err != nil {
+	if err := tokenBAdmin.Mint(std.Address("g1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5"), 1000_000000); err != nil {
 		return err
 	}
-	if err := tokenCAdmin.Mint(std.Address("g1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5"), 1_000000); err != nil {
+	if err := tokenCAdmin.Mint(std.Address("g1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5"), 1000_000000); err != nil {
 		return err
 	}
 	return nil

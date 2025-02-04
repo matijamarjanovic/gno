@@ -8,7 +8,16 @@ import (
 	"gno.land/p/demo/ufmt"
 	"gno.land/p/demo/grc/grc20"
 	"gno.land/r/demo/tokenhub"
+	"gno.land/p/demo/avl/pager"
 )
+
+var (
+	poolPager *pager.Pager
+)
+
+func init() {
+	poolPager = pager.NewPager(poolRegistry.pools, 3, false) // 10 pools per page
+}
 
 // CreatePool is the public function that handles validation and security checks before creating a pool.
 // If the pool creation is successful, the pool key is returned.
@@ -102,6 +111,29 @@ func (p *Pool) GetSharePercentage(address std.Address) float64 {
 	return float64(lpBalance) / float64(p.totalSupplyLp) * 100
 }
 
+// GetAllPoolNames returns a list of all existing pool names in the format "tokenA:tokenB"
+func GetAllPoolNames() []string {
+	var poolNames []string
+	
+	poolRegistry.pools.Iterate("", "", func(key string, value interface{}) bool {
+		poolNames = append(poolNames, key)
+		return false
+	})
+	
+	return poolNames
+}
+
+// GetPoolInfo returns basic information about a specific pool
+func GetPoolInfo(poolKey string) (string, string, uint64, uint64, error) {
+	poolInterface, exists := poolRegistry.pools.Get(poolKey)
+	if !exists {
+		return "", "", 0, 0, errors.New("pool not found")
+	}
+	
+	pool := poolInterface.(*Pool)
+	return pool.tokenA, pool.tokenB, pool.reserveA, pool.reserveB, nil
+}
+
 // createPoolKey is a helper function that creates a pool key and ensures consistent ordering of tokens
 func createPoolKey(tokenA, tokenB string) string {
 	if tokenA < tokenB {
@@ -109,6 +141,8 @@ func createPoolKey(tokenA, tokenB string) string {
 	}
 	return tokenB + ":" + tokenA
 }
+
+
 
 // addLiquidity is a helper function that adds liquidity to the pool. After the liquidity is added, the pool state is updated.
 // Liquidy cannot be added to the pool unless the caller himself gives the gnomine realm enough allowance to take for the amount of tokens he wants to add.
@@ -284,4 +318,9 @@ func createPool(creator std.Address, tokenA, tokenB string, initialAmountA, init
 	poolRegistry.pools.Set(createPoolKey(tokenA, tokenB), pool)
 
 	return nil
+}
+
+// GetPoolsPage returns a paginated list of pools
+func GetPoolsPage(path string) *pager.Page {
+	return poolPager.MustGetPageByPath(path)
 }

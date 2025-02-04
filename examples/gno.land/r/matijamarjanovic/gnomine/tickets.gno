@@ -21,7 +21,7 @@ func init() {
 
 // CreateCoinToTokenTicket creates a ticket to swap native coins for GRC20 tokens.
 // The coins to be swapped must be sent with the transaction. They will be locked in the realm until
-// one of the following happens:
+// one of the following happens (this is the case for all tickets):
 // - the ticket is fulfilled
 // - the ticket is cancelled
 // - the ticket expires
