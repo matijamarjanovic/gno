@@ -16,7 +16,7 @@ var (
 )
 
 func init() {
-	poolPager = pager.NewPager(poolRegistry.pools, 3, false) // 10 pools per page
+	poolPager = pager.NewPager(poolRegistry.pools, 3, false)
 }
 
 // CreatePool is the public function that handles validation and security checks before creating a pool.
@@ -95,10 +95,10 @@ func CreatePool(tokenA, tokenB string, initialAmountA, initialAmountB uint64) (s
 func AddLiquidity(poolKey string, amountA, amountB uint64) error {
 	pool, exists := poolRegistry.pools.Get(poolKey)
 	if !exists {
-		return errors.New("pool not found") //TODO: swap using native coin
+		return errors.New("pool not found")
 	}
 	
-	return addLiquidity(pool.(*Pool), std.PrevRealm().Addr(), amountA, amountB)
+	return pool.(*Pool).addLiquidity(std.PrevRealm().Addr(), amountA, amountB)
 }
 
 // WithdrawLiquidity is a public function that allows the caller to withdraw liquidity from the pool.
@@ -124,7 +124,7 @@ func WithdrawLiquidity(poolKey string, lpAmount uint64) (uint64, uint64, error) 
 		return 0, 0, errors.New("insufficient LP token balance")
 	}
 
-	return withdrawLiquidity(pool, caller, lpAmount)
+	return pool.withdrawLiquidity(caller, lpAmount)
 }
 
 
@@ -178,7 +178,7 @@ func createPoolKey(tokenA, tokenB string) string {
 // Liquidy cannot be added to the pool unless the caller himself gives the gnoXchange realm enough allowance to take for the amount of tokens he wants to add.
 // If user gives enough allowance for one token and not the other, the first token will be returned to the caller.
 // After the liquidity is added, the pool state is updated.
-func addLiquidity(p *Pool, provider std.Address, amountA, amountB uint64) error {
+func (p *Pool) addLiquidity(provider std.Address, amountA, amountB uint64) error {
 	tokenAInstance := tokenhub.GetToken(p.tokenA)
 	tokenBInstance := tokenhub.GetToken(p.tokenB)
 
@@ -283,7 +283,7 @@ func addLiquidity(p *Pool, provider std.Address, amountA, amountB uint64) error 
 // if the tokens to be withdrawn fail to transfer back to the caller, the pool state is still updated
 // and the caller's LPs are burned. This ensures that the pool state is consistent even if the transfer fails,
 // but the caller loses their LPs.
-func withdrawLiquidity(p *Pool, caller std.Address, lpAmount uint64) (uint64, uint64, error) {
+func (p *Pool) withdrawLiquidity(caller std.Address, lpAmount uint64) (uint64, uint64, error) {
 	if lpAmount == 0 {
 		return 0, 0, errors.New("cannot withdraw zero liquidity")
 	}
@@ -291,18 +291,13 @@ func withdrawLiquidity(p *Pool, caller std.Address, lpAmount uint64) (uint64, ui
 	amountA := (lpAmount * p.reserveA) / p.totalSupplyLp
 	amountB := (lpAmount * p.reserveB) / p.totalSupplyLp
 
-	// todo: fix this makes the tx fail in .Burn function in line 211
 	if err := p.lpLedger.Burn(caller, lpAmount); err != nil {
 		return 0, 0, errors.New(ufmt.Sprintf("failed to burn LP tokens: %v", err))
 	}
 
-	newReserveA := p.reserveA - amountA
-	newReserveB := p.reserveB - amountB
-	newTotalSupply := p.totalSupplyLp - lpAmount
-
-	p.reserveA = newReserveA
-	p.reserveB = newReserveB
-	p.totalSupplyLp = newTotalSupply
+	p.reserveA = p.reserveA - amountA
+	p.reserveB = p.reserveB - amountB
+	p.totalSupplyLp = p.totalSupplyLp - lpAmount
 
 	tokenAInstance := tokenhub.GetToken(p.tokenA)
 	tokenBInstance := tokenhub.GetToken(p.tokenB)
@@ -318,6 +313,23 @@ func withdrawLiquidity(p *Pool, caller std.Address, lpAmount uint64) (uint64, ui
 	}
 
 	return amountA, amountB, nil
+}
+
+func Test(amount uint64) string {
+	t, ledger := grc20.NewToken("testtoken", "TTK", 6)
+	tokenhub.RegisterToken(t.Getter(), "TTK")
+
+	prevAddr := std.PrevRealm().Addr()
+	if err := ledger.Mint(prevAddr, amount); err != nil {
+		panic(ufmt.Sprintf("failed to mint tokens: %v", err))
+	}
+
+	burnAmount := amount - 10
+	if err := ledger.Burn(prevAddr, burnAmount); err != nil {
+		panic(ufmt.Sprintf("failed to burn tokens: %v", err))
+	}
+
+	return ufmt.Sprintf("burned %d tokens", burnAmount)
 }
 
 // createPool handles the core pool creation logic. First it takes the tokens from the caller and transfers them to the pool.
