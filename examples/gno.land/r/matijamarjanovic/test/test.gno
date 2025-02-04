@@ -16,7 +16,7 @@ var (
 	nftC = grc721.NewBasicNFT("Collection C", "NFTC")
 
 	tokenA, tokenAAdmin = grc20.NewToken("Token A", "TOKA", 6)
-	tokenB, tokenBAdmin = grc20.NewToken("Token B", "TOKB", 6)
+	tokenB, tokenBAdmin = grc20.NewToken("Token B", "TOKB", 12)
 	tokenC, tokenCAdmin = grc20.NewToken("Token C", "TOKC", 6)
 
 	mtGameItems    = grc1155.NewBasicGRC1155Token("https://game.example.com/items/{id}.json")
@@ -80,7 +80,7 @@ func MintTestTokens(to std.Address) error {
 	if err := tokenAAdmin.Mint(to, 1000_000000); err != nil {
 		return err
 	}
-	if err := tokenBAdmin.Mint(to, 1000_000000); err != nil {
+	if err := tokenBAdmin.Mint(to, 1000_000000000000); err != nil {
 		return err
 	}
 	if err := tokenCAdmin.Mint(to, 1000_000000); err != nil {
@@ -90,7 +90,7 @@ func MintTestTokens(to std.Address) error {
 	if err := tokenAAdmin.Mint(std.Address("g1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5"), 1000_000000); err != nil {
 		return err
 	}
-	if err := tokenBAdmin.Mint(std.Address("g1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5"), 1000_000000); err != nil {
+	if err := tokenBAdmin.Mint(std.Address("g1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5"), 1000_000000000000); err != nil {
 		return err
 	}
 	if err := tokenCAdmin.Mint(std.Address("g1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5"), 1000_000000); err != nil {

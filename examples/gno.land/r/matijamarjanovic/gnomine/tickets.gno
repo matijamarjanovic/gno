@@ -4,6 +4,7 @@ import (
 	"errors"
 	"std"
 	"time"
+	"math"
 
 	"gno.land/p/demo/ufmt"
 	"gno.land/r/demo/tokenhub"
@@ -44,6 +45,24 @@ func CreateCoinToTokenTicket(
 		return "", errors.New("token not found: " + tokenKey)
 	}
 
+	coinDecimals := uint(6)
+	tokenDecimals := tokenOut.GetDecimals()
+
+	minDecimals := coinDecimals
+	if tokenDecimals < coinDecimals {
+		minDecimals = tokenDecimals
+	}
+
+	if tokenDecimals > minDecimals {
+		expectedScale := uint64(math.Pow10(int(tokenDecimals - minDecimals)))
+		if minAmountOut%expectedScale != 0 {
+			return "", errors.New(ufmt.Sprintf(
+				"invalid minimum output amount: amount must be in units of %d (token has %d decimals vs %d decimals for native coin)",
+				expectedScale, tokenDecimals, coinDecimals,
+			))
+		}
+	}
+
 	ticketCounter++
 	ticketID := ufmt.Sprintf("TICKET-%d", ticketCounter)
 	
@@ -77,6 +96,24 @@ func CreateTokenToCoinTicket(
 	tokenIn := tokenhub.GetToken(tokenKey)
 	if tokenIn == nil {
 		return "", errors.New("token not found: " + tokenKey)
+	}
+
+	coinDecimals := uint(6)
+	tokenDecimals := tokenIn.GetDecimals()
+
+	minDecimals := coinDecimals
+	if tokenDecimals < coinDecimals {
+		minDecimals = tokenDecimals
+	}
+
+	if tokenDecimals > minDecimals {
+		expectedScale := uint64(math.Pow10(int(tokenDecimals - minDecimals)))
+		if amountIn%expectedScale != 0 {
+			return "", errors.New(ufmt.Sprintf(
+				"invalid input amount: amount must be in units of %d (token has %d decimals vs %d decimals for native coin)",
+				expectedScale, tokenDecimals, coinDecimals,
+			))
+		}
 	}
 
 	tellerIn := tokenIn.RealmTeller()
@@ -122,6 +159,34 @@ func CreateTokenToTokenTicket(
 	tokenOut := tokenhub.GetToken(tokenOutKey)
 	if tokenOut == nil {
 		return "", errors.New("token not found: " + tokenOutKey)
+	}
+
+	decimalsIn := tokenIn.GetDecimals()
+	decimalsOut := tokenOut.GetDecimals()
+
+	minDecimals := decimalsIn
+	if decimalsOut < decimalsIn {
+		minDecimals = decimalsOut
+	}
+
+	if decimalsIn > minDecimals {
+		expectedScale := uint64(math.Pow10(int(decimalsIn - minDecimals)))
+		if amountIn%expectedScale != 0 {
+			return "", errors.New(ufmt.Sprintf(
+				"invalid input amount for %s: amount must be in units of %d (token has %d decimals vs %d decimals for the other token)",
+				tokenInKey, expectedScale, decimalsIn, minDecimals,
+			))
+		}
+	}
+
+	if decimalsOut > minDecimals {
+		expectedScale := uint64(math.Pow10(int(decimalsOut - minDecimals)))
+		if minAmountOut%expectedScale != 0 {
+			return "", errors.New(ufmt.Sprintf(
+				"invalid minimum output amount for %s: amount must be in units of %d (token has %d decimals vs %d decimals for the other token)",
+				tokenOutKey, expectedScale, decimalsOut, minDecimals,
+			))
+		}
 	}
 
 	tellerIn := tokenIn.RealmTeller()

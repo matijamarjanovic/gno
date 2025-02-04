@@ -20,6 +20,8 @@ func init() {
 }
 
 // CreatePool is the public function that handles validation and security checks before creating a pool.
+// Since it is possible for tokens to have different decimals, it is the lowest amount of both tokens
+// is the lowest ammount of the one with less decimals.
 // If the pool creation is successful, the pool key is returned.
 func CreatePool(tokenA, tokenB string, initialAmountA, initialAmountB uint64) (string, error) {
 	caller := std.PrevRealm().Addr()
@@ -36,6 +38,36 @@ func CreatePool(tokenA, tokenB string, initialAmountA, initialAmountB uint64) (s
 	tokenBInstance := tokenhub.GetToken(tokenB)
 	if tokenBInstance == nil {
 		return "", errors.New(ufmt.Sprintf("token %s not found", tokenB))
+	}
+
+	decimalsA := tokenAInstance.GetDecimals()
+	decimalsB := tokenBInstance.GetDecimals()
+
+	// Determine which token has fewer decimals
+	minDecimals := decimalsA
+	if decimalsB < decimalsA {
+		minDecimals = decimalsB
+	}
+
+	// Check if amounts respect decimal places
+	if decimalsA > minDecimals {
+		expectedScale := uint64(math.Pow10(int(decimalsA - minDecimals)))
+		if initialAmountA%expectedScale != 0 {
+			return "", errors.New(ufmt.Sprintf(
+				"invalid amount for %s: amount must be in units of %d (token has %d decimals vs %d decimals for the other token)",
+				tokenA, expectedScale, decimalsA, minDecimals,
+			))
+		}
+	}
+
+	if decimalsB > minDecimals {
+		expectedScale := uint64(math.Pow10(int(decimalsB - minDecimals)))
+		if initialAmountB%expectedScale != 0 {
+			return "", errors.New(ufmt.Sprintf(
+				"invalid amount for %s: amount must be in units of %d (token has %d decimals vs %d decimals for the other token)",
+				tokenB, expectedScale, decimalsB, minDecimals,
+			))
+		}
 	}
 
 	poolKey := createPoolKey(tokenA, tokenB)
@@ -151,6 +183,34 @@ func createPoolKey(tokenA, tokenB string) string {
 func addLiquidity(p *Pool, provider std.Address, amountA, amountB uint64) error {
 	tokenAInstance := tokenhub.GetToken(p.tokenA)
 	tokenBInstance := tokenhub.GetToken(p.tokenB)
+
+	decimalsA := tokenAInstance.GetDecimals()
+	decimalsB := tokenBInstance.GetDecimals()
+
+	minDecimals := decimalsA
+	if decimalsB < decimalsA {
+		minDecimals = decimalsB
+	}
+
+	if decimalsA > minDecimals {
+		expectedScale := uint64(math.Pow10(int(decimalsA - minDecimals)))
+		if amountA%expectedScale != 0 {
+			return errors.New(ufmt.Sprintf(
+				"invalid amount for %s: amount must be in units of %d (token has %d decimals vs %d decimals for the other token)",
+				p.tokenA, expectedScale, decimalsA, minDecimals,
+			))
+		}
+	}
+
+	if decimalsB > minDecimals {
+		expectedScale := uint64(math.Pow10(int(decimalsB - minDecimals)))
+		if amountB%expectedScale != 0 {
+			return errors.New(ufmt.Sprintf(
+				"invalid amount for %s: amount must be in units of %d (token has %d decimals vs %d decimals for the other token)",
+				p.tokenB, expectedScale, decimalsB, minDecimals,
+			))
+		}
+	}
 
 	allowanceA := tokenAInstance.Allowance(provider, std.CurrentRealm().Addr())
 	if allowanceA < amountA {

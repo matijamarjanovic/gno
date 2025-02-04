@@ -2,6 +2,7 @@ package gnomine
 
 import (
     "errors"
+    "math"
     "std"
 
     "gno.land/p/demo/ufmt"
@@ -41,6 +42,24 @@ func Swap(poolKey string, tokenInKey string, amountIn uint64, minAmountOut uint6
     tokenOut := tokenhub.GetToken(tokenOutKey)
     if tokenOut == nil {
         return 0, errors.New("output token not found in tokenhub")
+    }
+
+    decimalsIn := tokenIn.GetDecimals()
+    decimalsOut := tokenOut.GetDecimals()
+
+    minDecimals := decimalsIn
+    if decimalsOut < decimalsIn {
+        minDecimals = decimalsOut
+    }
+
+    if decimalsIn > minDecimals {
+        expectedScale := uint64(math.Pow10(int(decimalsIn - minDecimals)))
+        if amountIn%expectedScale != 0 {
+            return 0, errors.New(ufmt.Sprintf(
+                "invalid input amount for %s: amount must be in units of %d (token has %d decimals vs %d decimals for the other token)",
+                tokenInKey, expectedScale, decimalsIn, minDecimals,
+            ))
+        }
     }
 
     amountOut, err := calculateOutputAmount(pool, tokenInKey, amountIn)
