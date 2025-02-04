@@ -15,7 +15,7 @@ type PoolRegistry struct {
 
 // Pool is a struct that represents a swap pool. It contains the two tokens in the pool,
 // the reserves of each token, the liquidity provider token, and the total supply of the liquidity provider token.
-// None of the pool's fields are to be accessed externally, only through the PoolRegistry in the GnoMine realm.
+// None of the pool's fields are to be accessed externally, only through the PoolRegistry in the gnoXchange realm.
 type Pool struct {
     tokenA    string // tokenhub tokenKey
     tokenB    string // tokenhub tokenKey

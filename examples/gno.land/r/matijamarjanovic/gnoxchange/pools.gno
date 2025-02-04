@@ -175,7 +175,7 @@ func createPoolKey(tokenA, tokenB string) string {
 
 
 // addLiquidity is a helper function that adds liquidity to the pool. After the liquidity is added, the pool state is updated.
-// Liquidy cannot be added to the pool unless the caller himself gives the gnomine realm enough allowance to take for the amount of tokens he wants to add.
+// Liquidy cannot be added to the pool unless the caller himself gives the gnoXchange realm enough allowance to take for the amount of tokens he wants to add.
 // If user gives enough allowance for one token and not the other, the first token will be returned to the caller.
 // After the liquidity is added, the pool state is updated.
 func addLiquidity(p *Pool, provider std.Address, amountA, amountB uint64) error {
