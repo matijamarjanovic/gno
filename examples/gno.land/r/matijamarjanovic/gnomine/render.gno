@@ -2,9 +2,11 @@ package gnomine
 
 import (
 	"time"
+	"strings"
+	"math"
 	"gno.land/p/demo/ufmt"
 	"gno.land/p/moul/md"
-	"strings"
+	"gno.land/r/demo/tokenhub"
 )
 
 var statusEmojis = map[string]string{
@@ -31,13 +33,11 @@ func Render(path string) string {
 	}
 }
 
-// RenderHome displays the main landing page with navigation
 func RenderHome() string {
 	var str string
 	str += md.H1("GnoMine")
 	str += md.Paragraph("Welcome to GnoMine - Decentralized token exchange system on Gno.land")
 	
-	// Navigation section
 	str += md.H2("Navigation")
 	links := []string{
 		md.Link("Liquidity Pools", "http://localhost:8888/r/matijamarjanovic/gnomine:pools") + " - View and interact with liquidity pools", // TODO: change to gno.land
@@ -45,7 +45,6 @@ func RenderHome() string {
 	}
 	str += md.BulletList(links)
 	
-	// Quick stats section
 	str += md.H2("Quick Stats")
 	stats := []string{
 		ufmt.Sprintf("Total Pools: %d", len(GetAllPoolNames())),
@@ -53,14 +52,12 @@ func RenderHome() string {
 	}
 	str += md.BulletList(stats)
 	
-	// Add some space at the bottom
 	str += md.HorizontalRule()
 	str += md.Paragraph("Start by exploring the available pools or creating a new swap ticket.")
 	
 	return str
 }
 
-// RenderTickets handles the ticket system view
 func RenderTickets(path string) string {
 	var str string
 	str += md.H2("Ticket System")
@@ -78,19 +75,41 @@ func RenderTickets(path string) string {
 		ticket := item.Value.(*Ticket)
 		
 		swapType := ""
+		var amountInStr, amountOutStr string
+		
 		if ticket.AssetIn.Type == AssetTypeCoin {
 			swapType = ticket.AssetIn.Denom + " → " + ticket.AssetOut.Token
+			amountInStr = ufmt.Sprintf("%f", float64(ticket.AmountIn)/1000000) + " " + ticket.AssetIn.Denom
+			
+			tokenOut := tokenhub.GetToken(ticket.AssetOut.Token)
+			decimalAdjustOut := math.Pow(10, float64(tokenOut.GetDecimals()))
+			amountOutStr = ufmt.Sprintf("%f", float64(ticket.MinAmountOut)/decimalAdjustOut) + " " + tokenOut.GetSymbol()
+			
 		} else if ticket.AssetOut.Type == AssetTypeCoin {
-			swapType = ticket.AssetIn.Token + " → " + ticket.AssetOut.Denom
+			tokenIn := tokenhub.GetToken(ticket.AssetIn.Token)
+			swapType = tokenIn.GetSymbol() + " → " + ticket.AssetOut.Denom
+			
+			decimalAdjustIn := math.Pow(10, float64(tokenIn.GetDecimals()))
+			amountInStr = ufmt.Sprintf("%f", float64(ticket.AmountIn)/decimalAdjustIn) + " " + tokenIn.GetSymbol()
+			amountOutStr = ufmt.Sprintf("%f", float64(ticket.MinAmountOut)/1000000) + " " + ticket.AssetOut.Denom
+			
 		} else {
-			swapType = ticket.AssetIn.Token + " → " + ticket.AssetOut.Token
+			tokenIn := tokenhub.GetToken(ticket.AssetIn.Token)
+			tokenOut := tokenhub.GetToken(ticket.AssetOut.Token)
+			swapType = tokenIn.GetSymbol() + " → " + tokenOut.GetSymbol()
+			
+			decimalAdjustIn := math.Pow(10, float64(tokenIn.GetDecimals()))
+			decimalAdjustOut := math.Pow(10, float64(tokenOut.GetDecimals()))
+			
+			amountInStr = ufmt.Sprintf("%f", float64(ticket.AmountIn)/decimalAdjustIn) + " " + tokenIn.GetSymbol()
+			amountOutStr = ufmt.Sprintf("%f", float64(ticket.MinAmountOut)/decimalAdjustOut) + " " + tokenOut.GetSymbol()
 		}
 		
 		str += md.H3("#" + ticket.ID + " (" + swapType + ")")
 		
 		details := []string{
-			"Publisher Offers: " + formatAsset(ticket.AssetIn, ticket.AmountIn),
-			"Publisher Wants (min): " + formatAsset(ticket.AssetOut, ticket.MinAmountOut),
+			"Publisher Offers: " + amountInStr,
+			"Publisher Wants (min): " + amountOutStr,
 			"Created At: " + ticket.CreatedAt.Format(time.RFC3339),
 			"Expires In: " + formatDuration(ticket.ExpiresAt.Sub(time.Now())),
 			"Status: " + statusEmojis[ticket.Status],
@@ -107,7 +126,6 @@ func RenderTickets(path string) string {
 	return str
 }
 
-// RenderPools handles the main pools view (default)
 func RenderPools(path string) string {
 	var str string
 	str += md.H2("Available Pools")
@@ -126,11 +144,23 @@ func RenderPools(path string) string {
 			continue
 		}
 
-		tokens := strings.Split(poolKey, ":")
-		str += md.H3(tokens[0] + " <-> " + tokens[1])
+		tokenAInstance := tokenhub.GetToken(tokenA)
+		tokenBInstance := tokenhub.GetToken(tokenB)
+		
+		decimalAdjustA := math.Pow(10, float64(tokenAInstance.GetDecimals()))
+		decimalAdjustB := math.Pow(10, float64(tokenBInstance.GetDecimals()))
+
+		tokenAName := tokenAInstance.GetName()
+		tokenBName := tokenBInstance.GetName()
+		tokenASymbol := tokenAInstance.GetSymbol()
+		tokenBSymbol := tokenBInstance.GetSymbol()
+		
+		str += md.H3(tokenAName + " (" + tokenASymbol + ") <-> " + tokenBName + " (" + tokenBSymbol + ")")
 		details := []string{
-			"First token: " + tokenA + " - **" + ufmt.Sprintf("%d", reserveA) + "**",
-			"Second token: " + tokenB + " - **" + ufmt.Sprintf("%d", reserveB) + "**",
+			"First token: " + tokenASymbol + " - **" + ufmt.Sprintf("%f", float64(reserveA)/decimalAdjustA) + "**" + 
+				" (1 " + tokenASymbol + " ≈ " + ufmt.Sprintf("%f", float64(reserveB)/float64(reserveA)) + " " + tokenBSymbol + ")",
+			"Second token: " + tokenBSymbol + " - **" + ufmt.Sprintf("%f", float64(reserveB)/decimalAdjustB) + "**" + 
+				" (1 " + tokenBSymbol + " ≈ " + ufmt.Sprintf("%f", float64(reserveA)/float64(reserveB)) + " " + tokenASymbol + ")",
 		}
 		str += md.BulletList(details)
 		str += md.HorizontalRule()
@@ -169,4 +199,12 @@ func formatDuration(d time.Duration) string {
 	}
 	
 	return ufmt.Sprintf("%dm", minutes)
+}
+
+func getTokenName(tokenPath string) string {
+	parts := strings.Split(tokenPath, ".")
+	if len(parts) > 0 {
+		return parts[len(parts)-1]
+	}
+	return tokenPath
 }
