@@ -40,6 +40,7 @@ package gnoxchange
 
 import (
 	"gno.land/p/demo/avl"
+	"gno.land/r/leon/hof"
 )
 
 var(
@@ -55,4 +56,6 @@ func init() {
     ticketRegistry = &TicketRegistry{
 		tickets: avl.NewTree(),
 	}
+    
+	hof.Register()
 }
