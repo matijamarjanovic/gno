@@ -1,4 +1,4 @@
-package gnomine
+package gnoxchange
 
 import (
     "errors"
@@ -10,7 +10,7 @@ import (
 )
 
 const (
-    FEE_NUMERATOR   = 5    // 0.5%
+    FEE_NUMERATOR   = 3    // 0.3%
     FEE_DENOMINATOR = 1000
 )
 
@@ -87,7 +87,6 @@ func Swap(poolKey string, tokenInKey string, amountIn uint64, minAmountOut uint6
         return 0, errors.New(ufmt.Sprintf("failed to transfer input token: %v", err))
     }
 
-	//key word optimistic
     tellerOut := tokenOut.RealmTeller()
     if err := tellerOut.Transfer(caller, amountOut); err != nil {
         if refundErr := tellerIn.Transfer(caller, amountIn); refundErr != nil {
@@ -109,7 +108,7 @@ func Swap(poolKey string, tokenInKey string, amountIn uint64, minAmountOut uint6
 }
 
 // calculateOutputAmount calculates the output amount for a given input amount
-// using the constant product formula (x * y = k) with a 0.5% fee
+// using the constant product formula (x * y = k) with a 0.3% fee
 func calculateOutputAmount(pool *Pool, tokenInKey string, amountIn uint64) (uint64, error) {
     var reserveIn, reserveOut uint64
     
@@ -125,7 +124,7 @@ func calculateOutputAmount(pool *Pool, tokenInKey string, amountIn uint64) (uint
         return 0, errors.New("insufficient liquidity")
     }
 
-    // calculate amount with fee (0.5%)
+    // calculate amount with fee (0.3%)
     amountInWithFee := amountIn * (FEE_DENOMINATOR - FEE_NUMERATOR)
     numerator := amountInWithFee * reserveOut
     denominator := (reserveIn * FEE_DENOMINATOR) + amountInWithFee

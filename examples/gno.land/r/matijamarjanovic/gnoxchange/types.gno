@@ -1,4 +1,4 @@
-package gnomine	
+package gnoxchange	
 
 import (
 	"time"

@@ -1,4 +1,4 @@
-package gnomine
+package gnoxchange
 
 import (
 	"time"
@@ -35,13 +35,13 @@ func Render(path string) string {
 
 func RenderHome() string {
 	var str string
-	str += md.H1("GnoMine")
-	str += md.Paragraph("Welcome to GnoMine - Decentralized token exchange system on Gno.land")
+	str += md.H1("GnoXchange")
+	str += md.Paragraph("Welcome to GnoXchange - Decentralized token exchange system on Gno.land")
 	
 	str += md.H2("Navigation")
 	links := []string{
-		md.Link("Liquidity Pools", "http://localhost:8888/r/matijamarjanovic/gnomine:pools") + " - View and interact with liquidity pools", // TODO: change to gno.land
-		md.Link("Ticket System", "http://localhost:8888/r/matijamarjanovic/gnomine:ticketing") + " - Create and manage swap tickets", // TODO: change to gno.land
+		md.Link("Liquidity Pools", "http://localhost:8888/r/matijamarjanovic/gnoxchange:pools") + " - View and interact with liquidity pools", // TODO: change to gno.land
+		md.Link("Ticket System", "http://localhost:8888/r/matijamarjanovic/gnoxchange:ticketing") + " - Create and manage swap tickets", // TODO: change to gno.land
 	}
 	str += md.BulletList(links)
 	

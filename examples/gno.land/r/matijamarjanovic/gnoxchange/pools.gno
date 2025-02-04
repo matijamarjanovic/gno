@@ -1,4 +1,4 @@
-package gnomine
+package gnoxchange
 
 import ( 
 	"errors"
@@ -43,13 +43,11 @@ func CreatePool(tokenA, tokenB string, initialAmountA, initialAmountB uint64) (s
 	decimalsA := tokenAInstance.GetDecimals()
 	decimalsB := tokenBInstance.GetDecimals()
 
-	// Determine which token has fewer decimals
 	minDecimals := decimalsA
 	if decimalsB < decimalsA {
 		minDecimals = decimalsB
 	}
 
-	// Check if amounts respect decimal places
 	if decimalsA > minDecimals {
 		expectedScale := uint64(math.Pow10(int(decimalsA - minDecimals)))
 		if initialAmountA%expectedScale != 0 {
