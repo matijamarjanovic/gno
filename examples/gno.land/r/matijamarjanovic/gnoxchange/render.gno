@@ -26,6 +26,8 @@ func Render(path string) string {
 	switch basePath {
 	case "ticketing":
 		return RenderTickets(path)
+	case "ticketHistory":
+		return RenderTicketHistory(path)
 	case "pools":
 		return RenderPools(path)
 	default:
@@ -51,7 +53,10 @@ func RenderHome() string {
 		ufmt.Sprintf("Open Tickets: %d", len(GetOpenTickets("").Items)),
 	}
 	str += md.BulletList(stats)
-	
+
+	str += md.Paragraph("")
+	str += md.Paragraph(md.Link("Ticket History", "http://localhost:8888/r/matijamarjanovic/gnoxchange:ticketHistory"))
+
 	str += md.HorizontalRule()
 	str += md.Paragraph("Start by exploring the available pools or creating a new swap ticket.")
 	
@@ -162,6 +167,74 @@ func RenderPools(path string) string {
 			"Second token: " + tokenBSymbol + " - **" + ufmt.Sprintf("%f", float64(reserveB)/decimalAdjustB) + "**" + 
 				" (1 " + tokenBSymbol + " ≈ " + ufmt.Sprintf("%f", float64(reserveA)/float64(reserveB)) + " " + tokenASymbol + ")",
 		}
+		str += md.BulletList(details)
+		str += md.HorizontalRule()
+	}
+
+	if page.TotalPages > 1 {
+		str += "\n\nPages: " + page.Picker()
+	}
+
+	return str
+}
+
+func RenderTicketHistory(path string) string {
+	var str string
+	str += md.H2("Ticket History")
+	str += md.Paragraph("View all tickets (including expired, fulfilled, and cancelled).")
+
+	page := GetAllTickets(path)
+	if len(page.Items) == 0 {
+		str += md.Blockquote("No open tickets available.")
+		return str
+	}
+
+	str += md.H2("Open Tickets")
+	
+	for _, item := range page.Items {
+		ticket := item.Value.(*Ticket)
+		
+		swapType := ""
+		var amountInStr, amountOutStr string
+		
+		if ticket.AssetIn.Type == AssetTypeCoin {
+			swapType = ticket.AssetIn.Denom + " → " + ticket.AssetOut.Token
+			amountInStr = ufmt.Sprintf("%f", float64(ticket.AmountIn)/1000000) + " " + ticket.AssetIn.Denom
+			
+			tokenOut := tokenhub.GetToken(ticket.AssetOut.Token)
+			decimalAdjustOut := math.Pow(10, float64(tokenOut.GetDecimals()))
+			amountOutStr = ufmt.Sprintf("%f", float64(ticket.MinAmountOut)/decimalAdjustOut) + " " + tokenOut.GetSymbol()
+			
+		} else if ticket.AssetOut.Type == AssetTypeCoin {
+			tokenIn := tokenhub.GetToken(ticket.AssetIn.Token)
+			swapType = tokenIn.GetSymbol() + " → " + ticket.AssetOut.Denom
+			
+			decimalAdjustIn := math.Pow(10, float64(tokenIn.GetDecimals()))
+			amountInStr = ufmt.Sprintf("%f", float64(ticket.AmountIn)/decimalAdjustIn) + " " + tokenIn.GetSymbol()
+			amountOutStr = ufmt.Sprintf("%f", float64(ticket.MinAmountOut)/1000000) + " " + ticket.AssetOut.Denom
+			
+		} else {
+			tokenIn := tokenhub.GetToken(ticket.AssetIn.Token)
+			tokenOut := tokenhub.GetToken(ticket.AssetOut.Token)
+			swapType = tokenIn.GetSymbol() + " → " + tokenOut.GetSymbol()
+			
+			decimalAdjustIn := math.Pow(10, float64(tokenIn.GetDecimals()))
+			decimalAdjustOut := math.Pow(10, float64(tokenOut.GetDecimals()))
+			
+			amountInStr = ufmt.Sprintf("%f", float64(ticket.AmountIn)/decimalAdjustIn) + " " + tokenIn.GetSymbol()
+			amountOutStr = ufmt.Sprintf("%f", float64(ticket.MinAmountOut)/decimalAdjustOut) + " " + tokenOut.GetSymbol()
+		}
+		
+		str += md.H3("#" + ticket.ID + " (" + swapType + ")")
+		
+		details := []string{
+			"Publisher Offers: " + amountInStr,
+			"Publisher Wants (min): " + amountOutStr,
+			"Created At: " + ticket.CreatedAt.Format(time.RFC3339),
+			"Expires In: " + formatDuration(ticket.ExpiresAt.Sub(time.Now())),
+			"Status: " + statusEmojis[ticket.Status],
+		}
+
 		str += md.BulletList(details)
 		str += md.HorizontalRule()
 	}
