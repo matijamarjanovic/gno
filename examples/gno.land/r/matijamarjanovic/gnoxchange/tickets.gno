@@ -66,7 +66,7 @@ func CreateCoinToTokenTicket(
 	}
 
 	ticketCounter++
-	ticketID := ufmt.Sprintf("TICKET-%d", ticketCounter)
+	ticketID := ufmt.Sprintf("swap-%d", ticketCounter)
 	
 	ticket := &Ticket{
 		ID:           ticketID,
@@ -124,7 +124,7 @@ func CreateTokenToCoinTicket(
 	}
 
 	ticketCounter++
-	ticketID := ufmt.Sprintf("TICKET-%d", ticketCounter)
+	ticketID := ufmt.Sprintf("swap-%d", ticketCounter)
 	
 	ticket := &Ticket{
 		ID:           ticketID,
@@ -197,7 +197,7 @@ func CreateTokenToTokenTicket(
 	}
 
 	ticketCounter++
-	ticketID := ufmt.Sprintf("TICKET-%d", ticketCounter)
+	ticketID := ufmt.Sprintf("swap-%d", ticketCounter)
 	
 	ticket := &Ticket{
 		ID:           ticketID,
@@ -345,7 +345,7 @@ func CancelTicket(ticketID string) error {
 	return nil
 }
 
-// GetTicket allows a user to get a ticket by its ID. All tickets are named TICKET-<number>.
+// GetTicket allows a user to get a ticket by its ID. All tickets are named swap-<number>.
 func GetTicket(ticketID string) (*Ticket, error) {
 	ticketInterface, exists := ticketRegistry.allTickets.Get(ticketID)
 	if !exists {

@@ -21,7 +21,6 @@ func CreateNFTToTokenTicket(
 ) (string, error) {
     caller := std.PrevRealm().Addr()
 
-    // Split the NFT path into components
     parts := strings.Split(nftFullPath, ".")
     if len(parts) < 4 {
         return "", errors.New("invalid NFT path format: expected path.collection.tokenID")
@@ -29,7 +28,6 @@ func CreateNFTToTokenTicket(
 
     tokenID := parts[len(parts)-1]
 
-    // Get NFT instance
     nft := tokenhub.GetNFT(nftFullPath)
     if nft == nil {
         return "", errors.New("NFT not found: " + nftFullPath)
@@ -53,7 +51,7 @@ func CreateNFTToTokenTicket(
     }
 
     ticketCounter++
-    ticketID := ufmt.Sprintf("TICKET-%d", ticketCounter)
+    ticketID := ufmt.Sprintf("nfts-%d", ticketCounter)
     
     ticket := &Ticket{
         ID:           ticketID,
@@ -80,7 +78,6 @@ func CreateNFTToCoinTicket(
 ) (string, error) {
     caller := std.PrevRealm().Addr()
 
-    // Split the NFT path into components
     parts := strings.Split(nftFullPath, ".")
     if len(parts) < 4 {
         return "", errors.New("invalid NFT path format: expected path.collection.tokenID")
@@ -88,7 +85,6 @@ func CreateNFTToCoinTicket(
 
     tokenID := parts[len(parts)-1]
 
-    // Get NFT instance
     nft := tokenhub.GetNFT(nftFullPath)
     if nft == nil {
         return "", errors.New("NFT not found: " + nftFullPath)
@@ -107,7 +103,7 @@ func CreateNFTToCoinTicket(
     }
 
     ticketCounter++
-    ticketID := ufmt.Sprintf("TICKET-%d", ticketCounter)
+    ticketID := ufmt.Sprintf("nfts-%d", ticketCounter)
     
     ticket := &Ticket{
         ID:           ticketID,
@@ -126,6 +122,7 @@ func CreateNFTToCoinTicket(
 }
 
 // BuyNFT allows a user to fulfill an NFT ticket by paying with tokens or coins.
+// It functions on the same principle as the fulfillTicket function.
 func BuyNFT(ticketID string, amountOut uint64) error {
     caller := std.PrevRealm().Addr()
     

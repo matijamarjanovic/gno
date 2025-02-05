@@ -24,9 +24,20 @@
 // - Tickets can be cancelled by the creator before they are fulfilled or expired which refunds the funds
 //   to the creator.
 //
+// GnoXchange offers one more functionality - NFT market.
+// - Anyone can create a ticket for a fixed amount of tokens for a certain NFT.
+// - When creating a ticket for an NFT, the NFT has to be approved first by the creator.
+// - On ticket creation NFT is transferred from the creator to the realm.
+// - When fulfilling a ticket for an NFT, the NFT is transferred from the realm to the fulfiller (buyer).
+//
 // Notes:
 // All actions with tokens require user's allowance approval of the GnoXchange realm for all tokens to be used:
 // <your-token>.Approve(std.DerivePkgAddr("gno.land/r/matijamarjanovic/gnoxchange"), <amount>)
+// (in case of NFTs, the approval is done on the NFT contract)
+// <your-nft>.SetApprovalForAll(std.DerivePkgAddr("gno.land/r/matijamarjanovic/gnoxchange"), true) (for all NFTs in the collection), or:
+// <your-nft>.Approve(std.DerivePkgAddr("gno.land/r/matijamarjanovic/gnoxchange"), <token-id>) (for specific NFT)
+//
+// Both token and nft instances can be accessed through the tokenhub realm (GetToken() and GetNFT() functions).
 //
 // Since tokens can have different decimals, 1 unit of a token with less decimals is the minimum amount of both tokens.
 // Meaning if user wants to p2p swap/create a pool with tokenA (4 decimalns) and tokenB (six decimals) 
