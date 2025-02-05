@@ -40,8 +40,13 @@ type Ticket struct {
 	Status       string
 }
 
+// TicketRegisty is consisted of 3 trees only for better gas efficiency.
+// Most of the time, user would only want to see open tickets or nfts currently for sale.
+// There is no need to iterate over all tickets everry time.
 type TicketRegistry struct {
-	tickets *avl.Tree // ticket ID -> *Ticket
+    allTickets     *avl.Tree // all tickets (including NFTs)
+    openTickets    *avl.Tree // open non-NFT tickets
+    openNFTTickets *avl.Tree // open NFT tickets
 }
 
 // Types of assets
@@ -49,15 +54,18 @@ type AssetType uint8
 const (
     AssetTypeCoin AssetType = iota  // Native coins (like ugnot)
     AssetTypeToken                   // GRC20 tokens
+    AssetTypeNFT                     // GRC721 NFTs
 )
 
-// Asset is a struct shared between coins and tokens
+// Asset is a struct shared between coins, tokens and NFTs
 type Asset struct {
     Type     AssetType
     Denom    string    // for coins (e.g. "ugnot")
     Token    string    // for GRC20 tokens (e.g. "gno.land/r/test.testtokena")
+    NFTPath  string    // for NFTs (e.g. "gno.land/r/test.mycollection.1")
 }
 
+// Helper functions for creating assets
 func NewCoinAsset(denom string) Asset {
     return Asset{
         Type:  AssetTypeCoin,
@@ -69,6 +77,13 @@ func NewTokenAsset(token string) Asset {
     return Asset{
         Type:  AssetTypeToken,
         Token: token,
+    }
+}
+
+func NewNFTAsset(nftFullPath string) Asset {
+    return Asset{
+        Type:    AssetTypeNFT,
+        NFTPath: nftFullPath,
     }
 }
 

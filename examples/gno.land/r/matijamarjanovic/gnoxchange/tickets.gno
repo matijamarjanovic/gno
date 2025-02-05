@@ -5,11 +5,13 @@ import (
 	"std"
 	"time"
 	"math"
+	"strings"
 
 	"gno.land/p/demo/ufmt"
 	"gno.land/r/demo/tokenhub"
 	"gno.land/p/demo/avl"
 	"gno.land/p/demo/avl/pager"
+	"gno.land/p/demo/grc/grc721"
 )
 
 var (
@@ -78,7 +80,7 @@ func CreateCoinToTokenTicket(
 		Status:       "open",
 	}
 
-	ticketRegistry.tickets.Set(ticketID, ticket)
+	addTicket(ticket)
 	return ticketID, nil
 }
 
@@ -136,7 +138,7 @@ func CreateTokenToCoinTicket(
 		Status:       "open",
 	}
 
-	ticketRegistry.tickets.Set(ticketID, ticket)
+	addTicket(ticket)
 	return ticketID, nil
 }
 
@@ -209,7 +211,7 @@ func CreateTokenToTokenTicket(
 		Status:       "open",
 	}
 
-	ticketRegistry.tickets.Set(ticketID, ticket)
+	addTicket(ticket)
 	return ticketID, nil
 } 
 
@@ -220,7 +222,7 @@ func CreateTokenToTokenTicket(
 func FulfillTicket(ticketID string, amountOut uint64) error {
 	caller := std.PrevRealm().Addr()
 	
-	ticketInterface, exists := ticketRegistry.tickets.Get(ticketID)
+	ticketInterface, exists := ticketRegistry.allTickets.Get(ticketID)
 	if !exists {
 		return errors.New("ticket not found")
 	}
@@ -232,8 +234,7 @@ func FulfillTicket(ticketID string, amountOut uint64) error {
 	}
 
 	if time.Now().After(ticket.ExpiresAt) {
-		ticket.Status = "expired"
-		ticketRegistry.tickets.Set(ticketID, ticket)
+		updateTicketStatus(ticket, "expired")
 		return errors.New("ticket has expired")
 	}
 
@@ -290,8 +291,7 @@ func FulfillTicket(ticketID string, amountOut uint64) error {
 		}
 	}
 
-	ticket.Status = "fulfilled"
-	ticketRegistry.tickets.Set(ticketID, ticket)
+	updateTicketStatus(ticket, "fulfilled")
 	return nil
 }
 
@@ -299,7 +299,7 @@ func FulfillTicket(ticketID string, amountOut uint64) error {
 func CancelTicket(ticketID string) error {
 	caller := std.PrevRealm().Addr()
 	
-	ticketInterface, exists := ticketRegistry.tickets.Get(ticketID)
+	ticketInterface, exists := ticketRegistry.allTickets.Get(ticketID)
 	if !exists {
 		return errors.New("ticket not found")
 	}
@@ -321,6 +321,18 @@ func CancelTicket(ticketID string) error {
 			ticket.Creator,
 			std.Coins{{ticket.AssetIn.Denom, int64(ticket.AmountIn)}},
 		)
+	} else if ticket.AssetIn.Type == AssetTypeNFT {
+		nft := tokenhub.GetNFT(ticket.AssetIn.NFTPath)
+		if nft == nil {
+			return errors.New("NFT not found: " + ticket.AssetIn.NFTPath)
+		}
+
+		parts := strings.Split(ticket.AssetIn.NFTPath, ".")
+		tokenID := parts[len(parts)-1]
+
+		if err := nft.TransferFrom(std.CurrentRealm().Addr(), ticket.Creator, grc721.TokenID(tokenID)); err != nil {
+			return errors.New(ufmt.Sprintf("failed to return NFT: %v", err))
+		}
 	} else {
 		tokenIn := tokenhub.GetToken(ticket.AssetIn.Token)
 		tellerIn := tokenIn.RealmTeller()
@@ -329,14 +341,13 @@ func CancelTicket(ticketID string) error {
 		}
 	}
 
-	ticket.Status = "cancelled"
-	ticketRegistry.tickets.Set(ticketID, ticket)
+	updateTicketStatus(ticket, "cancelled")
 	return nil
 }
 
 // GetTicket allows a user to get a ticket by its ID. All tickets are named TICKET-<number>.
 func GetTicket(ticketID string) (*Ticket, error) {
-	ticketInterface, exists := ticketRegistry.tickets.Get(ticketID)
+	ticketInterface, exists := ticketRegistry.allTickets.Get(ticketID)
 	if !exists {
 		return nil, errors.New("ticket not found")
 	}
@@ -346,23 +357,82 @@ func GetTicket(ticketID string) (*Ticket, error) {
 
 // GetAllTickets returns a paginated list of all tickets.
 func GetAllTickets(path string) *pager.Page {
-	pager := pager.NewPager(ticketRegistry.tickets, 10, true) 
+	pager := pager.NewPager(ticketRegistry.allTickets, 10, true) 
 	return pager.MustGetPageByPath(path)
 }
 
 // GetOpenTickets returns a paginated list of open, non-expired tickets.
 func GetOpenTickets(path string) *pager.Page {
-	openTickets := avl.NewTree()
+	pager := pager.NewPager(ticketRegistry.openTickets, 10, true)
+	return pager.MustGetPageByPath(path)
+}
+
+func GetAllNFTTickets(path string) *pager.Page {
+	nftTickets := avl.NewTree()
 	
-	ticketRegistry.tickets.Iterate("", "", func(key string, value interface{}) bool {
+	ticketRegistry.allTickets.Iterate("", "", func(key string, value interface{}) bool {
 		ticket := value.(*Ticket)
-		if ticket.Status == "open" && !time.Now().After(ticket.ExpiresAt) {
-			openTickets.Set(key, ticket)
+		if ticket.AssetIn.Type == AssetTypeNFT {
+			nftTickets.Set(key, ticket)
 		}
 		return false
 	})
 	
-	pager := pager.NewPager(openTickets, 2, true)
+	pager := pager.NewPager(nftTickets, 5, true)
 	return pager.MustGetPageByPath(path)
+}
+
+func GetOpenNFTTickets(path string) *pager.Page {
+	pager := pager.NewPager(ticketRegistry.openNFTTickets, 10, true)
+	return pager.MustGetPageByPath(path)
+}
+
+func GetAllOpenNonNFTTickets(path string) *pager.Page {
+	nonNFTTickets := avl.NewTree()
+	
+	ticketRegistry.allTickets.Iterate("", "", func(key string, value interface{}) bool {
+		ticket := value.(*Ticket)
+		if ticket.Status == "open" && 
+		   !time.Now().After(ticket.ExpiresAt) && 
+		   ticket.AssetIn.Type != AssetTypeNFT && 
+		   ticket.AssetOut.Type != AssetTypeNFT {
+			nonNFTTickets.Set(key, ticket)
+		}
+		return false
+	})
+	
+	pager := pager.NewPager(nonNFTTickets, 5, true)
+	return pager.MustGetPageByPath(path)
+}
+
+// Helper function to add a ticket to the appropriate trees
+func addTicket(ticket *Ticket) {
+	ticketID := ticket.ID
+	
+	ticketRegistry.allTickets.Set(ticketID, ticket)
+	
+	if ticket.Status == "open" && !time.Now().After(ticket.ExpiresAt) {
+		if ticket.AssetIn.Type == AssetTypeNFT {
+			ticketRegistry.openNFTTickets.Set(ticketID, ticket)
+		} else {
+			ticketRegistry.openTickets.Set(ticketID, ticket)
+		}
+	}
+}
+
+// Helper function to update ticket status
+func updateTicketStatus(ticket *Ticket, newStatus string) {
+	oldStatus := ticket.Status
+	ticket.Status = newStatus
+	
+	ticketRegistry.allTickets.Set(ticket.ID, ticket)
+	
+	if oldStatus == "open" && newStatus != "open" {
+		if ticket.AssetIn.Type == AssetTypeNFT {
+			ticketRegistry.openNFTTickets.Remove(ticket.ID)
+		} else {
+			ticketRegistry.openTickets.Remove(ticket.ID)
+		}
+	}
 }
 

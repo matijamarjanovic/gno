@@ -54,8 +54,10 @@ func init() {
     }
 
     ticketRegistry = &TicketRegistry{
-		tickets: avl.NewTree(),
-	}
-    
-	hof.Register()
+        allTickets:     avl.NewTree(),
+        openTickets:    avl.NewTree(),
+        openNFTTickets: avl.NewTree(),
+    }
+
+    hof.Register()
 }
