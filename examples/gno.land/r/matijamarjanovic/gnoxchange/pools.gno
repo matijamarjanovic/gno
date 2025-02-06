@@ -87,7 +87,7 @@ func CreatePool(tokenA, tokenB string, initialAmountA, initialAmountB uint64) (s
 		return "", err
 	}
 
-	return "succesfully created pool " + poolKey, nil
+	return poolKey, nil
 }
 
 // AddLiquidity is a public function that allows the caller to add liquidity to the pool for the given pool key.
