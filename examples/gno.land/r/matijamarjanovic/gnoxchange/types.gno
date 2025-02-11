@@ -27,11 +27,19 @@ type Pool struct {
 	totalSupplyLp uint64
 }
 
+// TokenInfo represents the public information about a token
+type TokenInfo struct {
+	Path     string
+	Name     string
+	Symbol   string
+	Decimals uint
+}
+
 // PoolInfo represents the public information about a pool
 type PoolInfo struct {
 	PoolKey       string
-	TokenA        string
-	TokenB        string
+	TokenAInfo    TokenInfo
+	TokenBInfo    TokenInfo
 	ReserveA      uint64
 	ReserveB      uint64
 	TotalSupplyLP uint64

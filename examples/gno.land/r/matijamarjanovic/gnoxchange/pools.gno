@@ -167,17 +167,30 @@ func GetPoolInfo(poolKey string) (string, string, uint64, uint64, error) {
 }
 
 // GetPoolsPageInfo returns detailed information about pools for the given page
-// e.g. pools, pagination, err := GetPoolsPageInfo("?page=1&size=10")
 func GetPoolsPageInfo(path string) ([]PoolInfo, string, error) {
 	page := poolPager.MustGetPageByPath(path)
 	pools := make([]PoolInfo, 0, len(page.Items))
 
 	for _, item := range page.Items {
 		pool := item.Value.(*Pool)
+
+		tokenA := tokenhub.MustGetToken(pool.tokenA)
+		tokenB := tokenhub.MustGetToken(pool.tokenB)
+
 		pools = append(pools, PoolInfo{
-			PoolKey:       item.Key,
-			TokenA:        pool.tokenA,
-			TokenB:        pool.tokenB,
+			PoolKey: item.Key,
+			TokenAInfo: TokenInfo{
+				Path:     pool.tokenA,
+				Name:     tokenA.GetName(),
+				Symbol:   tokenA.GetSymbol(),
+				Decimals: tokenA.GetDecimals(),
+			},
+			TokenBInfo: TokenInfo{
+				Path:     pool.tokenB,
+				Name:     tokenB.GetName(),
+				Symbol:   tokenB.GetSymbol(),
+				Decimals: tokenB.GetDecimals(),
+			},
 			ReserveA:      pool.reserveA,
 			ReserveB:      pool.reserveB,
 			TotalSupplyLP: pool.totalSupplyLp,
@@ -195,10 +208,14 @@ func GetPoolsPageInfoString(path string) (string, error) {
 
 	for _, item := range page.Items {
 		pool := item.Value.(*Pool)
-		info := ufmt.Sprintf("%s>TokenA:%s,TokenB:%s,ReserveA:%d,ReserveB:%d,TotalSupplyLP:%d;",
+
+		tokenA := tokenhub.MustGetToken(pool.tokenA)
+		tokenB := tokenhub.MustGetToken(pool.tokenB)
+
+		info := ufmt.Sprintf("%s>TokenA:{Path:%s,Name:%s,Symbol:%s,Decimals:%d},TokenB:{Path:%s,Name:%s,Symbol:%s,Decimals:%d},ReserveA:%d,ReserveB:%d,TotalSupplyLP:%d;",
 			item.Key,
-			pool.tokenA,
-			pool.tokenB,
+			pool.tokenA, tokenA.GetName(), tokenA.GetSymbol(), tokenA.GetDecimals(),
+			pool.tokenB, tokenB.GetName(), tokenB.GetSymbol(), tokenB.GetDecimals(),
 			pool.reserveA,
 			pool.reserveB,
 			pool.totalSupplyLp,
