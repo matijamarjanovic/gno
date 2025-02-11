@@ -140,7 +140,10 @@ func (p *Pool) GetSharePercentage(address std.Address) float64 {
 	return float64(lpBalance) / float64(p.totalSupplyLp) * 100
 }
 
-// GetAllPoolNames returns a list of all existing pool names in the format "tokenA:tokenB"
+func GetPoolsPage(path string) *pager.Page {
+	return poolPager.MustGetPageByPath(path)
+}
+
 func GetAllPoolNames() []string {
 	var poolNames []string
 
@@ -161,6 +164,49 @@ func GetPoolInfo(poolKey string) (string, string, uint64, uint64, error) {
 
 	pool := poolInterface.(*Pool)
 	return pool.tokenA, pool.tokenB, pool.reserveA, pool.reserveB, nil
+}
+
+// GetPoolsPageInfo returns detailed information about pools for the given page
+// e.g. pools, pagination, err := GetPoolsPageInfo("?page=1&size=10")
+func GetPoolsPageInfo(path string) ([]PoolInfo, string, error) {
+	page := poolPager.MustGetPageByPath(path)
+	pools := make([]PoolInfo, 0, len(page.Items))
+
+	for _, item := range page.Items {
+		pool := item.Value.(*Pool)
+		pools = append(pools, PoolInfo{
+			PoolKey:       item.Key,
+			TokenA:        pool.tokenA,
+			TokenB:        pool.tokenB,
+			ReserveA:      pool.reserveA,
+			ReserveB:      pool.reserveB,
+			TotalSupplyLP: pool.totalSupplyLp,
+		})
+	}
+
+	return pools, page.Picker(), nil
+}
+
+// GetPoolsPageInfoString returns a string representation of pool information for the given page
+// e.g. poolsStr, err := GetPoolsPageInfoString("?page=1&size=10")
+func GetPoolsPageInfoString(path string) (string, error) {
+	page := poolPager.MustGetPageByPath(path)
+	var result string
+
+	for _, item := range page.Items {
+		pool := item.Value.(*Pool)
+		info := ufmt.Sprintf("%s>TokenA:%s,TokenB:%s,ReserveA:%d,ReserveB:%d,TotalSupplyLP:%d;",
+			item.Key,
+			pool.tokenA,
+			pool.tokenB,
+			pool.reserveA,
+			pool.reserveB,
+			pool.totalSupplyLp,
+		)
+		result += info
+	}
+
+	return result, nil
 }
 
 // createPoolKey is a helper function that creates a pool key and ensures consistent ordering of tokens
@@ -370,7 +416,12 @@ func createPool(creator std.Address, tokenA, tokenB string, initialAmountA, init
 	return nil
 }
 
-// GetPoolsPage returns a paginated list of pools
-func GetPoolsPage(path string) *pager.Page {
-	return poolPager.MustGetPageByPath(path)
+// PoolInfo represents the public information about a pool
+type PoolInfo struct {
+	PoolKey       string
+	TokenA        string
+	TokenB        string
+	ReserveA      uint64
+	ReserveB      uint64
+	TotalSupplyLP uint64
 }
