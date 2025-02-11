@@ -1,1 +1,1 @@
-module "gno.land/r/matijamarjanovic/gnoxchange"
+module gno.land/r/matijamarjanovic/gnoxchange
