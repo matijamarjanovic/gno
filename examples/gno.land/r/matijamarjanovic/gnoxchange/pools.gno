@@ -1,14 +1,14 @@
 package gnoxchange
 
-import ( 
+import (
 	"errors"
-	"std"
 	"math"
+	"std"
 
-	"gno.land/p/demo/ufmt"
-	"gno.land/p/demo/grc/grc20"
-	"gno.land/r/demo/tokenhub"
 	"gno.land/p/demo/avl/pager"
+	"gno.land/p/demo/grc/grc20"
+	"gno.land/p/demo/ufmt"
+	"gno.land/r/demo/tokenhub"
 )
 
 var (
@@ -25,7 +25,7 @@ func init() {
 // If the pool creation is successful, the pool key is returned.
 func CreatePool(tokenA, tokenB string, initialAmountA, initialAmountB uint64) (string, error) {
 	caller := std.PrevRealm().Addr()
-	
+
 	if tokenA == tokenB {
 		return "", errors.New("identical tokens")
 	}
@@ -97,7 +97,7 @@ func AddLiquidity(poolKey string, amountA, amountB uint64) error {
 	if !exists {
 		return errors.New("pool not found")
 	}
-	
+
 	return pool.(*Pool).addLiquidity(std.PrevRealm().Addr(), amountA, amountB)
 }
 
@@ -127,7 +127,6 @@ func WithdrawLiquidity(poolKey string, lpAmount uint64) (uint64, uint64, error) 
 	return pool.withdrawLiquidity(caller, lpAmount)
 }
 
-
 func (p *Pool) GetLPBalance(address std.Address) uint64 {
 	teller := p.lpToken.CallerTeller()
 	return teller.BalanceOf(address)
@@ -144,12 +143,12 @@ func (p *Pool) GetSharePercentage(address std.Address) float64 {
 // GetAllPoolNames returns a list of all existing pool names in the format "tokenA:tokenB"
 func GetAllPoolNames() []string {
 	var poolNames []string
-	
+
 	poolRegistry.pools.Iterate("", "", func(key string, value interface{}) bool {
 		poolNames = append(poolNames, key)
 		return false
 	})
-	
+
 	return poolNames
 }
 
@@ -159,7 +158,7 @@ func GetPoolInfo(poolKey string) (string, string, uint64, uint64, error) {
 	if !exists {
 		return "", "", 0, 0, errors.New("pool not found")
 	}
-	
+
 	pool := poolInterface.(*Pool)
 	return pool.tokenA, pool.tokenB, pool.reserveA, pool.reserveB, nil
 }
@@ -171,8 +170,6 @@ func createPoolKey(tokenA, tokenB string) string {
 	}
 	return tokenB + ":" + tokenA
 }
-
-
 
 // addLiquidity is a helper function that adds liquidity to the pool. After the liquidity is added, the pool state is updated.
 // Liquidy cannot be added to the pool unless the caller himself gives the gnoXchange realm enough allowance to take for the amount of tokens he wants to add.
@@ -222,23 +219,23 @@ func (p *Pool) addLiquidity(provider std.Address, amountA, amountB uint64) error
 
 	tellerA := tokenAInstance.RealmTeller()
 	if err := tellerA.TransferFrom(
-		provider,      
-		std.CurrentRealm().Addr(),    
-		amountA,               
+		provider,
+		std.CurrentRealm().Addr(),
+		amountA,
 	); err != nil {
 		return errors.New(ufmt.Sprintf("failed to transfer token %s: %v", p.tokenA, err))
 	}
 
 	tellerB := tokenBInstance.RealmTeller()
 	if err := tellerB.TransferFrom(
-		provider,      
-		std.CurrentRealm().Addr(),    
-		amountB,               
+		provider,
+		std.CurrentRealm().Addr(),
+		amountB,
 	); err != nil {
 		// if second transfer fails, we need to refund the first transfer
 		if refundErr := tellerA.Transfer(provider, amountA); refundErr != nil {
 			// serious error - couldn't refund
-			panic(ufmt.Sprintf("CRITICAL: failed to refund token %s after failed transfer of token %s: original error: %v, refund error: %v", 
+			panic(ufmt.Sprintf("CRITICAL: failed to refund token %s after failed transfer of token %s: original error: %v, refund error: %v",
 				p.tokenA, p.tokenB, err, refundErr))
 		}
 		return errors.New(ufmt.Sprintf("failed to transfer token %s: %v", p.tokenB, err))
@@ -321,24 +318,24 @@ func (p *Pool) withdrawLiquidity(caller std.Address, lpAmount uint64) (uint64, u
 func createPool(creator std.Address, tokenA, tokenB string, initialAmountA, initialAmountB uint64) error {
 	tokenAInstance := tokenhub.GetToken(tokenA)
 	tokenBInstance := tokenhub.GetToken(tokenB)
-	
+
 	tellerA := tokenAInstance.RealmTeller()
 	if err := tellerA.TransferFrom(
-		creator,      
-		std.CurrentRealm().Addr(),    
-		initialAmountA,               
+		creator,
+		std.CurrentRealm().Addr(),
+		initialAmountA,
 	); err != nil {
 		return errors.New(ufmt.Sprintf("failed to transfer token %s: %v", tokenA, err))
 	}
 
 	tellerB := tokenBInstance.RealmTeller()
 	if err := tellerB.TransferFrom(
-		creator,      
-		std.CurrentRealm().Addr(),    
-		initialAmountB,               
+		creator,
+		std.CurrentRealm().Addr(),
+		initialAmountB,
 	); err != nil {
 		if refundErr := tellerA.Transfer(creator, initialAmountA); refundErr != nil {
-			panic(ufmt.Sprintf("CRITICAL: failed to refund token %s after failed transfer of token %s: original error: %v, refund error: %v", 
+			panic(ufmt.Sprintf("CRITICAL: failed to refund token %s after failed transfer of token %s: original error: %v, refund error: %v",
 				tokenA, tokenB, err, refundErr))
 		}
 		return errors.New(ufmt.Sprintf("failed to transfer token %s: %v", tokenB, err))

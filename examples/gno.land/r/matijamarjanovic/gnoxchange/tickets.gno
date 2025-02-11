@@ -2,20 +2,20 @@ package gnoxchange
 
 import (
 	"errors"
-	"std"
-	"time"
 	"math"
+	"std"
 	"strings"
+	"time"
 
-	"gno.land/p/demo/ufmt"
-	"gno.land/r/demo/tokenhub"
 	"gno.land/p/demo/avl"
 	"gno.land/p/demo/avl/pager"
 	"gno.land/p/demo/grc/grc721"
+	"gno.land/p/demo/ufmt"
+	"gno.land/r/demo/tokenhub"
 )
 
 var (
-	ticketCounter  uint64
+	ticketCounter uint64
 )
 
 func init() {
@@ -29,9 +29,9 @@ func init() {
 // - the ticket is cancelled
 // - the ticket expires
 func CreateCoinToTokenTicket(
-	coinDenom string,     // e.g. "ugnot"
-	tokenKey string,      // e.g. "gno.land/r/test.gtoken"
-	minAmountOut uint64,  // minimum amount of tokens to receive
+	coinDenom string, // e.g. "ugnot"
+	tokenKey string, // e.g. "gno.land/r/test.gtoken"
+	minAmountOut uint64, // minimum amount of tokens to receive
 	expiryHours int64,
 ) (string, error) {
 	caller := std.PrevRealm().Addr()
@@ -67,7 +67,7 @@ func CreateCoinToTokenTicket(
 
 	ticketCounter++
 	ticketID := ufmt.Sprintf("swap-%d", ticketCounter)
-	
+
 	ticket := &Ticket{
 		ID:           ticketID,
 		Creator:      caller,
@@ -87,10 +87,10 @@ func CreateCoinToTokenTicket(
 // CreateTokenToCoinTicket creates a ticket to swap GRC20 tokens for native coins.
 // Requires token approval before creating the ticket.
 func CreateTokenToCoinTicket(
-	tokenKey string,      // e.g. "gno.land/r/test.gtoken"
-	coinDenom string,     // e.g. "ugnot"
-	amountIn uint64,      // amount of tokens to swap
-	minAmountOut uint64,  // minimum amount of coins to receive
+	tokenKey string, // e.g. "gno.land/r/test.gtoken"
+	coinDenom string, // e.g. "ugnot"
+	amountIn uint64, // amount of tokens to swap
+	minAmountOut uint64, // minimum amount of coins to receive
 	expiryHours int64,
 ) (string, error) {
 	caller := std.PrevRealm().Addr()
@@ -125,7 +125,7 @@ func CreateTokenToCoinTicket(
 
 	ticketCounter++
 	ticketID := ufmt.Sprintf("swap-%d", ticketCounter)
-	
+
 	ticket := &Ticket{
 		ID:           ticketID,
 		Creator:      caller,
@@ -145,10 +145,10 @@ func CreateTokenToCoinTicket(
 // CreateTokenToTokenTicket creates a ticket to swap one GRC20 token for another.
 // Requires token approval before creating the ticket.
 func CreateTokenToTokenTicket(
-	tokenInKey string,    // e.g. "gno.land/r/test1.gtokenA"
-	tokenOutKey string,   // e.g. "gno.land/r/test2.gtokenB"
-	amountIn uint64,      // amount of tokens to swap
-	minAmountOut uint64,  // minimum amount of tokens to receive
+	tokenInKey string, // e.g. "gno.land/r/test1.gtokenA"
+	tokenOutKey string, // e.g. "gno.land/r/test2.gtokenB"
+	amountIn uint64, // amount of tokens to swap
+	minAmountOut uint64, // minimum amount of tokens to receive
 	expiryHours int64,
 ) (string, error) {
 	caller := std.PrevRealm().Addr()
@@ -198,7 +198,7 @@ func CreateTokenToTokenTicket(
 
 	ticketCounter++
 	ticketID := ufmt.Sprintf("swap-%d", ticketCounter)
-	
+
 	ticket := &Ticket{
 		ID:           ticketID,
 		Creator:      caller,
@@ -213,7 +213,7 @@ func CreateTokenToTokenTicket(
 
 	addTicket(ticket)
 	return ticketID, nil
-} 
+}
 
 // FulfillTicket allows a user to fulfill an open ticket.
 // If all checks pass, the ticket is fulfilled and the assets are transferred to both parties.
@@ -221,12 +221,12 @@ func CreateTokenToTokenTicket(
 // note: If the ticket is asking for coins, the amountOut must be the exact amount of coins sent.
 func FulfillTicket(ticketID string, amountOut uint64) error {
 	caller := std.PrevRealm().Addr()
-	
+
 	ticketInterface, exists := ticketRegistry.allTickets.Get(ticketID)
 	if !exists {
 		return errors.New("ticket not found")
 	}
-	
+
 	ticket := ticketInterface.(*Ticket)
 
 	if ticket.Status != "open" {
@@ -247,7 +247,7 @@ func FulfillTicket(ticketID string, amountOut uint64) error {
 		if len(sent) != 1 || sent[0].Denom != ticket.AssetOut.Denom || uint64(sent[0].Amount) != amountOut {
 			return errors.New("sent coins don't match fulfillment parameters")
 		}
-		
+
 		banker := std.GetBanker(std.BankerTypeRealmSend)
 		banker.SendCoins(std.CurrentRealm().Addr(), ticket.Creator, sent)
 
@@ -298,12 +298,12 @@ func FulfillTicket(ticketID string, amountOut uint64) error {
 // CancelTicket allows the creator to cancel their ticket and withdraw the tokens/coins before the ticket is expired.
 func CancelTicket(ticketID string) error {
 	caller := std.PrevRealm().Addr()
-	
+
 	ticketInterface, exists := ticketRegistry.allTickets.Get(ticketID)
 	if !exists {
 		return errors.New("ticket not found")
 	}
-	
+
 	ticket := ticketInterface.(*Ticket)
 
 	if ticket.Creator != caller {
@@ -351,13 +351,13 @@ func GetTicket(ticketID string) (*Ticket, error) {
 	if !exists {
 		return nil, errors.New("ticket not found")
 	}
-	
+
 	return ticketInterface.(*Ticket), nil
 }
 
 // GetAllTickets returns a paginated list of all tickets.
 func GetAllTickets(path string) *pager.Page {
-	pager := pager.NewPager(ticketRegistry.allTickets, 10, true) 
+	pager := pager.NewPager(ticketRegistry.allTickets, 10, true)
 	return pager.MustGetPageByPath(path)
 }
 
@@ -369,7 +369,7 @@ func GetOpenTickets(path string) *pager.Page {
 
 func GetAllNFTTickets(path string) *pager.Page {
 	nftTickets := avl.NewTree()
-	
+
 	ticketRegistry.allTickets.Iterate("", "", func(key string, value interface{}) bool {
 		ticket := value.(*Ticket)
 		if ticket.AssetIn.Type == AssetTypeNFT {
@@ -377,7 +377,7 @@ func GetAllNFTTickets(path string) *pager.Page {
 		}
 		return false
 	})
-	
+
 	pager := pager.NewPager(nftTickets, 5, true)
 	return pager.MustGetPageByPath(path)
 }
@@ -389,18 +389,18 @@ func GetOpenNFTTickets(path string) *pager.Page {
 
 func GetAllOpenNonNFTTickets(path string) *pager.Page {
 	nonNFTTickets := avl.NewTree()
-	
+
 	ticketRegistry.allTickets.Iterate("", "", func(key string, value interface{}) bool {
 		ticket := value.(*Ticket)
-		if ticket.Status == "open" && 
-		   !time.Now().After(ticket.ExpiresAt) && 
-		   ticket.AssetIn.Type != AssetTypeNFT && 
-		   ticket.AssetOut.Type != AssetTypeNFT {
+		if ticket.Status == "open" &&
+			!time.Now().After(ticket.ExpiresAt) &&
+			ticket.AssetIn.Type != AssetTypeNFT &&
+			ticket.AssetOut.Type != AssetTypeNFT {
 			nonNFTTickets.Set(key, ticket)
 		}
 		return false
 	})
-	
+
 	pager := pager.NewPager(nonNFTTickets, 5, true)
 	return pager.MustGetPageByPath(path)
 }
@@ -408,9 +408,9 @@ func GetAllOpenNonNFTTickets(path string) *pager.Page {
 // Helper function to add a ticket to the appropriate trees
 func addTicket(ticket *Ticket) {
 	ticketID := ticket.ID
-	
+
 	ticketRegistry.allTickets.Set(ticketID, ticket)
-	
+
 	if ticket.Status == "open" && !time.Now().After(ticket.ExpiresAt) {
 		if ticket.AssetIn.Type == AssetTypeNFT {
 			ticketRegistry.openNFTTickets.Set(ticketID, ticket)
@@ -424,9 +424,9 @@ func addTicket(ticket *Ticket) {
 func updateTicketStatus(ticket *Ticket, newStatus string) {
 	oldStatus := ticket.Status
 	ticket.Status = newStatus
-	
+
 	ticketRegistry.allTickets.Set(ticket.ID, ticket)
-	
+
 	if oldStatus == "open" && newStatus != "open" {
 		if ticket.AssetIn.Type == AssetTypeNFT {
 			ticketRegistry.openNFTTickets.Remove(ticket.ID)
@@ -435,4 +435,3 @@ func updateTicketStatus(ticket *Ticket, newStatus string) {
 		}
 	}
 }
-

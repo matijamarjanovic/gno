@@ -5,18 +5,17 @@ import (
 	"testing"
 
 	"gno.land/p/demo/grc/grc20"
+	"gno.land/p/demo/grc/grc721"
 	"gno.land/p/demo/uassert"
 	"gno.land/p/demo/urequire"
 	"gno.land/r/demo/tokenhub"
-	"gno.land/p/demo/grc/grc721"
 )
-
 
 func TestCreatePool(t *testing.T) {
 	std.TestSetRealm(std.NewCodeRealm("gno.land/r/test/pools"))
 	tokenA, ledgerA := grc20.NewToken("Test Token A", "TTA", 6)
 	tokenB, ledgerB := grc20.NewToken("Test Token B", "TTB", 6)
-	
+
 	tokenhub.RegisterToken(tokenA.Getter(), "test_token_a")
 	tokenhub.RegisterToken(tokenB.Getter(), "test_token_b")
 
@@ -28,7 +27,7 @@ func TestCreatePool(t *testing.T) {
 
 	tellerA := tokenA.CallerTeller()
 	tellerB := tokenB.CallerTeller()
-	
+
 	err = tellerA.Approve(std.DerivePkgAddr("gno.land/r/matijamarjanovic/gnoxchange"), 10000)
 	urequire.NoError(t, err, "Should approve token A")
 	err = tellerB.Approve(std.DerivePkgAddr("gno.land/r/matijamarjanovic/gnoxchange"), 10000)
@@ -55,7 +54,7 @@ func TestAddLiquidity(t *testing.T) {
 	std.TestSetRealm(std.NewCodeRealm("gno.land/r/test/pools"))
 	tokenA, ledgerA := grc20.NewToken("Test Token A", "TTA", 6)
 	tokenB, ledgerB := grc20.NewToken("Test Token B", "TTB", 6)
-	
+
 	tokenhub.RegisterToken(tokenA.Getter(), "test_token_a2")
 	tokenhub.RegisterToken(tokenB.Getter(), "test_token_b2")
 
@@ -77,7 +76,7 @@ func TestAddLiquidity(t *testing.T) {
 	urequire.NoError(t, err)
 	err = tellerB.Approve(std.DerivePkgAddr("gno.land/r/matijamarjanovic/gnoxchange"), 1000)
 	urequire.NoError(t, err)
-	
+
 	err = AddLiquidity(poolKey, 500, 1000)
 	uassert.Error(t, err, "Should fail with incorrect ratio")
 
@@ -85,7 +84,7 @@ func TestAddLiquidity(t *testing.T) {
 	urequire.NoError(t, err)
 	err = tellerB.Approve(std.DerivePkgAddr("gno.land/r/matijamarjanovic/gnoxchange"), 500)
 	urequire.NoError(t, err)
-	
+
 	err = AddLiquidity(poolKey, 500, 500)
 	urequire.NoError(t, err, "Should add liquidity successfully")
 
@@ -99,7 +98,7 @@ func TestWithdrawLiquidity(t *testing.T) {
 	std.TestSetRealm(std.NewCodeRealm("gno.land/r/test/pools"))
 	tokenA, ledgerA := grc20.NewToken("Test Token A", "TTA", 6)
 	tokenB, ledgerB := grc20.NewToken("Test Token B", "TTB", 6)
-	
+
 	tokenhub.RegisterToken(tokenA.Getter(), "test_token_a3")
 	tokenhub.RegisterToken(tokenB.Getter(), "test_token_b3")
 
@@ -140,7 +139,7 @@ func TestPoolRegistry(t *testing.T) {
 	std.TestSetRealm(std.NewCodeRealm("gno.land/r/test/pools"))
 	tokenA, ledgerA := grc20.NewToken("Test Token A", "TTA", 6)
 	tokenB, ledgerB := grc20.NewToken("Test Token B", "TTB", 6)
-	
+
 	tokenhub.RegisterToken(tokenA.Getter(), "test_token_a4")
 	tokenhub.RegisterToken(tokenB.Getter(), "test_token_b4")
 
@@ -154,7 +153,7 @@ func TestPoolRegistry(t *testing.T) {
 	urequire.NoError(t, err)
 	err = tellerB.Approve(std.DerivePkgAddr("gno.land/r/matijamarjanovic/gnoxchange"), 2000)
 	urequire.NoError(t, err)
-	
+
 	poolKey1, err := CreatePool("gno.land/r/test/pools.test_token_a4", "gno.land/r/test/pools.test_token_b4", 1000, 1000)
 	urequire.NoError(t, err)
 
@@ -173,7 +172,7 @@ func contains(slice []string, str string) bool {
 		}
 	}
 	return false
-} 
+}
 
 func TestCreateCoinToTokenTicket(t *testing.T) {
 	std.TestSetRealm(std.NewCodeRealm("gno.land/r/test/tickets"))
@@ -240,7 +239,7 @@ func TestCreateTokenToTokenTicket(t *testing.T) {
 	std.TestSetRealm(std.NewCodeRealm("gno.land/r/test/tickets"))
 	tokenA, ledgerA := grc20.NewToken("Test Token A", "TTA", 6)
 	tokenB, ledgerB := grc20.NewToken("Test Token B", "TTB", 6)
-	
+
 	tokenhub.RegisterToken(tokenA.Getter(), "test_token_a")
 	tokenhub.RegisterToken(tokenB.Getter(), "test_token_b")
 
@@ -269,7 +268,7 @@ func TestFulfillTicket(t *testing.T) {
 	std.TestSetRealm(std.NewCodeRealm("gno.land/r/test/tickets"))
 	tokenA, ledgerA := grc20.NewToken("Test Token A", "TTA", 6)
 	tokenB, ledgerB := grc20.NewToken("Test Token B", "TTB", 6)
-	
+
 	tokenhub.RegisterToken(tokenA.Getter(), "test_token_a")
 	tokenhub.RegisterToken(tokenB.Getter(), "test_token_b")
 
@@ -333,7 +332,7 @@ func TestCancelTicket(t *testing.T) {
 
 func TestCreateNFTToTokenTicket(t *testing.T) {
 	std.TestSetRealm(std.NewCodeRealm("gno.land/r/test/nfts"))
-	
+
 	token, ledger := grc20.NewToken("Test Token", "TT", 6)
 	tokenhub.RegisterToken(token.Getter(), "test_token")
 	nft := grc721.NewBasicNFT("Test NFT", "TNFT")
@@ -348,7 +347,7 @@ func TestCreateNFTToTokenTicket(t *testing.T) {
 		otherAddr := std.DerivePkgAddr("some.other.address")
 		err := nft.Mint(otherAddr, "1")
 		urequire.NoError(t, err)
-		
+
 		_, err = CreateNFTToTokenTicket(
 			"gno.land/r/test/nfts.test_nft.1",
 			"gno.land/r/test/nfts.test_token",
@@ -361,7 +360,7 @@ func TestCreateNFTToTokenTicket(t *testing.T) {
 	{
 		err := nft.Mint(std.CurrentRealm().Addr(), "2")
 		urequire.NoError(t, err)
-		
+
 		_, err = CreateNFTToTokenTicket(
 			"gno.land/r/test/nfts.test_nft.2",
 			"gno.land/r/test/nfts.test_token",
@@ -387,7 +386,7 @@ func TestCreateNFTToCoinTicket(t *testing.T) {
 		otherAddr := std.DerivePkgAddr("some.other.address")
 		err := nft.Mint(otherAddr, "1")
 		urequire.NoError(t, err)
-		
+
 		_, err = CreateNFTToCoinTicket(
 			"gno.land/r/test/nftsss.test_nft.1",
 			"ugnot",
@@ -401,7 +400,7 @@ func TestCreateNFTToCoinTicket(t *testing.T) {
 		err := nft.Mint(std.CurrentRealm().Addr(), "2")
 		tokenhub.RegisterNFT(nft.Getter(), "test_nft", "2")
 		urequire.NoError(t, err)
-		
+
 		contractAddr := std.DerivePkgAddr("gno.land/r/matijamarjanovic/gnoxchange")
 		err = nft.Approve(contractAddr, "2")
 		urequire.NoError(t, err)
@@ -428,7 +427,7 @@ func TestCreateNFTToCoinTicket(t *testing.T) {
 
 func TestBuyNFT(t *testing.T) {
 	std.TestSetRealm(std.NewCodeRealm("gno.land/r/test/nfts"))
-	
+
 	token, ledger := grc20.NewToken("Test Token", "TT", 6)
 	tokenhub.RegisterToken(token.Getter(), "test_token")
 	nft := grc721.NewBasicNFT("Test NFT", "TNFT")
@@ -439,7 +438,7 @@ func TestBuyNFT(t *testing.T) {
 	err := nft.Mint(std.CurrentRealm().Addr(), "1")
 	tokenhub.RegisterNFT(nft.Getter(), "test_nft", "1")
 	urequire.NoError(t, err)
-	
+
 	err = nft.Approve(contractAddr, "1")
 	urequire.NoError(t, err)
 
