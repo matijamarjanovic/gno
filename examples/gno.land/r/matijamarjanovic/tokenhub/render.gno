@@ -11,52 +11,52 @@ import (
 	"gno.land/r/demo/grc20reg"
 )
 
+const (
+	token = "token" // grc20
+	nft   = "nft"   // grc721
+	mt    = "mt"    // grc1155
+)
+
 func Render(path string) string {
 	var out string
 
 	switch {
 	case path == "":
-		out = RenderHome()
+		out = renderHome()
 
 	case strings.HasPrefix(path, token):
-		out = RenderToken(path)
+		out = renderToken(path)
 
 	case strings.HasPrefix(path, nft):
-		out = RenderNFT(path)
+		out = renderNFT(path)
 
 	case strings.HasPrefix(path, mt):
-		out = RenderMT(path)
+		out = renderMT(path)
 
 	default:
 		out = md.H1("404 Not Found")
 		out += md.Paragraph("The requested page does not exist.")
-		out += md.Link("Back to home", "http://gno.land/r/demo/tokenhub")
-	}
-
-	// navigation footer if not on home page
-	if path != "" {
-		out += "\n"
-		out += md.Link("Back to home", "http://gno.land/r/demo/tokenhub")
+		out += "[Back to home](/r/demo/tokenhub)"
 	}
 
 	return out
 }
 
-func RenderHome() string {
+func renderHome() string {
 	out := md.H1("Token Hub")
 	out += md.Paragraph("A central registry for GRC721 NFTs, GRC20 tokens, and GRC1155 multi-tokens on gno.land")
 
 	links := []string{
-		md.Link("GRC20 Tokens", "http://gno.land/r/demo/tokenhub:tokens"),
-		md.Link("GRC721 NFTs", "http://gno.land/r/demo/tokenhub:nfts"),
-		md.Link("GRC1155 Multi-Tokens", "http://gno.land/r/demo/tokenhub:mts"),
+		"[GRC20 Tokens](/r/demo/tokenhub:tokens)",
+		"[GRC721 NFTs](/r/demo/tokenhub:nfts)",
+		"[GRC1155 Multi-Tokens](/r/demo/tokenhub:mts)",
 	}
 	out += md.BulletList(links)
 
 	return out
 }
 
-func RenderToken(path string) string {
+func renderToken(path string) string {
 	out := md.H1("GRC20 Tokens")
 	var tokenItems []string
 
@@ -87,16 +87,15 @@ func RenderToken(path string) string {
 		out += md.Italic("No tokens registered yet")
 		out += "\n"
 	}
-
+	out += renderFooter()
 	return out
 }
 
-func RenderNFT(path string) string {
+func renderNFT(path string) string {
 	out := md.H1("GRC721 NFTs")
+
 	var nftItems []string
-
 	nftPager := pager.NewPager(registeredNFTs, pageSize, false)
-
 	page := nftPager.MustGetPageByPath(path)
 
 	for _, item := range page.Items {
@@ -127,11 +126,11 @@ func RenderNFT(path string) string {
 		out += md.Italic("No NFTs registered yet")
 		out += "\n"
 	}
-
+	out += renderFooter()
 	return out
 }
 
-func RenderMT(path string) string {
+func renderMT(path string) string {
 	out := md.H1("GRC1155 Multi-Tokens")
 	var mtItems []string
 
@@ -161,6 +160,11 @@ func RenderMT(path string) string {
 		out += md.Italic("No multi-tokens registered yet")
 		out += "\n"
 	}
-
+	out += renderFooter()
+	return out
+}
+func renderFooter() string {
+	out := "\n"
+	out += "[Back to home](/r/demo/tokenhub)"
 	return out
 }

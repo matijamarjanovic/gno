@@ -79,8 +79,6 @@ func main() {
 //
 // ## [Hall of Fame](/r/leon/hof)
 //
-// - [gno.land/r/demo/tokenhub](/r/demo/tokenhub)
-//
 // </div><!-- /column-->
 // </div><!-- /columns-3 -->
 //
