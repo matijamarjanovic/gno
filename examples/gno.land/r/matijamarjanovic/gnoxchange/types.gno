@@ -21,7 +21,7 @@ type Pool struct {
     tokenB    string // tokenhub tokenKey
     reserveA  uint64
     reserveB  uint64
-    lpToken   *grc20.Token  // Change to GRC20 token
+    lpToken   *grc20.Token  
     lpLedger  *grc20.PrivateLedger
     totalSupplyLp uint64
 }
