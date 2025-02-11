@@ -315,23 +315,6 @@ func (p *Pool) withdrawLiquidity(caller std.Address, lpAmount uint64) (uint64, u
 	return amountA, amountB, nil
 }
 
-func Test(amount uint64) string {
-	t, ledger := grc20.NewToken("testtoken", "TTK", 6)
-	tokenhub.RegisterToken(t.Getter(), "TTK")
-
-	prevAddr := std.PrevRealm().Addr()
-	if err := ledger.Mint(prevAddr, amount); err != nil {
-		panic(ufmt.Sprintf("failed to mint tokens: %v", err))
-	}
-
-	burnAmount := amount - 10
-	if err := ledger.Burn(prevAddr, burnAmount); err != nil {
-		panic(ufmt.Sprintf("failed to burn tokens: %v", err))
-	}
-
-	return ufmt.Sprintf("burned %d tokens", burnAmount)
-}
-
 // createPool handles the core pool creation logic. First it takes the tokens from the caller and transfers them to the pool.
 // Then it creates the LP tokens and mints them to the caller. It calculates the initial liquidity based on the sqrt of the product of the two tokens.
 // The pool is then created and added to the pool registry.
