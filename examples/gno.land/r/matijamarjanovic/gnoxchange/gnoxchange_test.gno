@@ -173,3 +173,159 @@ func contains(slice []string, str string) bool {
 	}
 	return false
 } 
+
+func TestCreateCoinToTokenTicket(t *testing.T) {
+	std.TestSetRealm(std.NewCodeRealm("gno.land/r/test/tickets"))
+	token, ledger := grc20.NewToken("Test Token", "TT", 6)
+	tokenhub.RegisterToken(token.Getter(), "test_token")
+
+	{
+		_, err := CreateCoinToTokenTicket("ugnot", "gno.land/r/test/tickets.test_token", 1000, 24)
+		uassert.Error(t, err, "Should fail without sending coins")
+	}
+
+	{
+		std.TestSetOrigSend(std.Coins{{"wrongcoin", 1000}}, nil)
+		_, err := CreateCoinToTokenTicket("ugnot", "gno.land/r/test/tickets.test_token", 1000, 24)
+		uassert.Error(t, err, "Should fail with wrong coin denomination")
+	}
+
+	{
+		std.TestSetOrigSend(std.Coins{{"ugnot", 1000}, {"other", 500}}, nil)
+		_, err := CreateCoinToTokenTicket("ugnot", "gno.land/r/test/tickets.test_token", 1000, 24)
+		uassert.Error(t, err, "Should fail with multiple coins")
+	}
+
+	{
+		std.TestSetOrigSend(std.Coins{{"ugnot", 1000}}, nil)
+		ticketID, err := CreateCoinToTokenTicket("ugnot", "gno.land/r/test/tickets.test_token", 1000, 24)
+		urequire.NoError(t, err, "Should create ticket successfully")
+		uassert.NotEmpty(t, ticketID, "Ticket ID should not be empty")
+
+		ticket, err := GetTicket(ticketID)
+		urequire.NoError(t, err)
+		uassert.Equal(t, "ugnot", ticket.AssetIn.Denom)
+		uassert.Equal(t, "gno.land/r/test/tickets.test_token", ticket.AssetOut.Token)
+		uassert.Equal(t, uint64(1000), ticket.MinAmountOut)
+		uassert.Equal(t, "open", ticket.Status)
+	}
+}
+
+func TestCreateTokenToCoinTicket(t *testing.T) {
+	std.TestSetRealm(std.NewCodeRealm("gno.land/r/test/tickets"))
+	token, ledger := grc20.NewToken("Test Token", "TT", 6)
+	tokenhub.RegisterToken(token.Getter(), "test_token")
+
+	ledger.Mint(std.CurrentRealm().Addr(), 10000)
+
+	_, err := CreateTokenToCoinTicket("gno.land/r/test/tickets.test_token", "ugnot", 1000, 1000, 24)
+	uassert.Error(t, err, "Should fail without approval")
+
+	teller := token.CallerTeller()
+	err = teller.Approve(std.DerivePkgAddr("gno.land/r/matijamarjanovic/gnoxchange"), 1000)
+	urequire.NoError(t, err)
+
+	ticketID, err := CreateTokenToCoinTicket("gno.land/r/test/tickets.test_token", "ugnot", 1000, 1000, 24)
+	urequire.NoError(t, err, "Should create ticket successfully")
+
+	ticket, err := GetTicket(ticketID)
+	urequire.NoError(t, err)
+	uassert.Equal(t, "gno.land/r/test/tickets.test_token", ticket.AssetIn.Token)
+	uassert.Equal(t, "ugnot", ticket.AssetOut.Denom)
+	uassert.Equal(t, uint64(1000), ticket.MinAmountOut)
+}
+
+func TestCreateTokenToTokenTicket(t *testing.T) {
+	std.TestSetRealm(std.NewCodeRealm("gno.land/r/test/tickets"))
+	tokenA, ledgerA := grc20.NewToken("Test Token A", "TTA", 6)
+	tokenB, ledgerB := grc20.NewToken("Test Token B", "TTB", 6)
+	
+	tokenhub.RegisterToken(tokenA.Getter(), "test_token_a")
+	tokenhub.RegisterToken(tokenB.Getter(), "test_token_b")
+
+	ledgerA.Mint(std.CurrentRealm().Addr(), 10000)
+
+	tellerA := tokenA.CallerTeller()
+	err := tellerA.Approve(std.DerivePkgAddr("gno.land/r/matijamarjanovic/gnoxchange"), 1000)
+	urequire.NoError(t, err)
+
+	ticketID, err := CreateTokenToTokenTicket(
+		"gno.land/r/test/tickets.test_token_a",
+		"gno.land/r/test/tickets.test_token_b",
+		1000,
+		1000,
+		24,
+	)
+	urequire.NoError(t, err, "Should create ticket successfully")
+
+	ticket, err := GetTicket(ticketID)
+	urequire.NoError(t, err)
+	uassert.Equal(t, "gno.land/r/test/tickets.test_token_a", ticket.AssetIn.Token)
+	uassert.Equal(t, "gno.land/r/test/tickets.test_token_b", ticket.AssetOut.Token)
+}
+
+func TestFulfillTicket(t *testing.T) {
+	std.TestSetRealm(std.NewCodeRealm("gno.land/r/test/tickets"))
+	tokenA, ledgerA := grc20.NewToken("Test Token A", "TTA", 6)
+	tokenB, ledgerB := grc20.NewToken("Test Token B", "TTB", 6)
+	
+	tokenhub.RegisterToken(tokenA.Getter(), "test_token_a")
+	tokenhub.RegisterToken(tokenB.Getter(), "test_token_b")
+
+	ledgerA.Mint(std.CurrentRealm().Addr(), 10000)
+	ledgerB.Mint(std.CurrentRealm().Addr(), 10000)
+
+	tellerA := tokenA.CallerTeller()
+	err := tellerA.Approve(std.DerivePkgAddr("gno.land/r/matijamarjanovic/gnoxchange"), 1000)
+	urequire.NoError(t, err)
+
+	ticketID, err := CreateTokenToTokenTicket(
+		"gno.land/r/test/tickets.test_token_a",
+		"gno.land/r/test/tickets.test_token_b",
+		1000,
+		1000,
+		24,
+	)
+	urequire.NoError(t, err)
+
+	std.TestSetRealm(std.NewCodeRealm("gno.land/r/test/tickets2"))
+	ledgerA.Mint(std.CurrentRealm().Addr(), 10000)
+	ledgerB.Mint(std.CurrentRealm().Addr(), 10000)
+
+	err = tellerA.Approve(std.DerivePkgAddr("gno.land/r/matijamarjanovic/gnoxchange"), 1000)
+	err = FulfillTicket(ticketID, 500)
+	uassert.Error(t, err, "Should fail with insufficient amount")
+
+	tellerB := tokenB.CallerTeller()
+	err = tellerB.Approve(std.DerivePkgAddr("gno.land/r/matijamarjanovic/gnoxchange"), 1000)
+	urequire.NoError(t, err)
+
+	err = FulfillTicket(ticketID, 1000)
+	urequire.NoError(t, err, "Should fulfill ticket successfully")
+
+	ticket, err := GetTicket(ticketID)
+	urequire.NoError(t, err)
+	uassert.Equal(t, "fulfilled", ticket.Status)
+}
+
+func TestCancelTicket(t *testing.T) {
+	std.TestSetRealm(std.NewCodeRealm("gno.land/r/test/tickets"))
+	token, ledger := grc20.NewToken("Test Token", "TT", 6)
+	tokenhub.RegisterToken(token.Getter(), "test_token")
+
+	ledger.Mint(std.CurrentRealm().Addr(), 10000)
+
+	teller := token.CallerTeller()
+	err := teller.Approve(std.DerivePkgAddr("gno.land/r/matijamarjanovic/gnoxchange"), 1000)
+	urequire.NoError(t, err)
+
+	ticketID, err := CreateTokenToCoinTicket("gno.land/r/test/tickets.test_token", "ugnot", 1000, 1000, 24)
+	urequire.NoError(t, err)
+
+	err = CancelTicket(ticketID)
+	urequire.NoError(t, err, "Should cancel ticket successfully")
+
+	ticket, err := GetTicket(ticketID)
+	urequire.NoError(t, err)
+	uassert.Equal(t, "cancelled", ticket.Status)
+}
