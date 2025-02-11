@@ -415,13 +415,3 @@ func createPool(creator std.Address, tokenA, tokenB string, initialAmountA, init
 
 	return nil
 }
-
-// PoolInfo represents the public information about a pool
-type PoolInfo struct {
-	PoolKey       string
-	TokenA        string
-	TokenB        string
-	ReserveA      uint64
-	ReserveB      uint64
-	TotalSupplyLP uint64
-}

@@ -27,6 +27,16 @@ type Pool struct {
 	totalSupplyLp uint64
 }
 
+// PoolInfo represents the public information about a pool
+type PoolInfo struct {
+	PoolKey       string
+	TokenA        string
+	TokenB        string
+	ReserveA      uint64
+	ReserveB      uint64
+	TotalSupplyLP uint64
+}
+
 // Ticket is a struct that represents a swap ticket.
 // It holds information about the available swaps
 type Ticket struct {
