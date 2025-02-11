@@ -8,6 +8,7 @@ import (
 	"gno.land/p/demo/uassert"
 	"gno.land/p/demo/urequire"
 	"gno.land/r/demo/tokenhub"
+	"gno.land/p/demo/grc/grc721"
 )
 
 
@@ -328,4 +329,150 @@ func TestCancelTicket(t *testing.T) {
 	ticket, err := GetTicket(ticketID)
 	urequire.NoError(t, err)
 	uassert.Equal(t, "cancelled", ticket.Status)
+}
+
+func TestCreateNFTToTokenTicket(t *testing.T) {
+	std.TestSetRealm(std.NewCodeRealm("gno.land/r/test/nfts"))
+	
+	token, ledger := grc20.NewToken("Test Token", "TT", 6)
+	tokenhub.RegisterToken(token.Getter(), "test_token")
+	nft := grc721.NewBasicNFT("Test NFT", "TNFT")
+	tokenhub.RegisterNFT(nft.Getter(), "test_nft", "1")
+
+	{
+		_, err := CreateNFTToTokenTicket("gno.land/r/test/nfts.test_nft.nonexistent.1", "gno.land/r/test/nfts.test_token", 1000, 24)
+		uassert.Error(t, err, "Should fail with non-existent NFT")
+	}
+
+	{
+		otherAddr := std.DerivePkgAddr("some.other.address")
+		err := nft.Mint(otherAddr, "1")
+		urequire.NoError(t, err)
+		
+		_, err = CreateNFTToTokenTicket(
+			"gno.land/r/test/nfts.test_nft.1",
+			"gno.land/r/test/nfts.test_token",
+			1000,
+			24,
+		)
+		uassert.Error(t, err, "Should fail when caller is not owner")
+	}
+
+	{
+		err := nft.Mint(std.CurrentRealm().Addr(), "2")
+		urequire.NoError(t, err)
+		
+		_, err = CreateNFTToTokenTicket(
+			"gno.land/r/test/nfts.test_nft.2",
+			"gno.land/r/test/nfts.test_token",
+			1000,
+			24,
+		)
+		uassert.Error(t, err, "Should fail without approval")
+	}
+}
+
+func TestCreateNFTToCoinTicket(t *testing.T) {
+	std.TestSetRealm(std.NewCodeRealm("gno.land/r/test/nftsss"))
+	nft := grc721.NewBasicNFT("Test NFT", "TNFT")
+
+	tokenhub.RegisterNFT(nft.Getter(), "test_nft", "1")
+
+	{
+		_, err := CreateNFTToCoinTicket("gno.land/r/test/nftsss.test_nft.nonexistent.1", "ugnot", 1000, 24)
+		uassert.Error(t, err, "Should fail with non-existent NFT")
+	}
+
+	{
+		otherAddr := std.DerivePkgAddr("some.other.address")
+		err := nft.Mint(otherAddr, "1")
+		urequire.NoError(t, err)
+		
+		_, err = CreateNFTToCoinTicket(
+			"gno.land/r/test/nftsss.test_nft.1",
+			"ugnot",
+			1000,
+			24,
+		)
+		uassert.Error(t, err, "Should fail when caller is not owner")
+	}
+
+	{
+		err := nft.Mint(std.CurrentRealm().Addr(), "2")
+		tokenhub.RegisterNFT(nft.Getter(), "test_nft", "2")
+		urequire.NoError(t, err)
+		
+		contractAddr := std.DerivePkgAddr("gno.land/r/matijamarjanovic/gnoxchange")
+		err = nft.Approve(contractAddr, "2")
+		urequire.NoError(t, err)
+
+		ticketID, err := CreateNFTToCoinTicket(
+			"gno.land/r/test/nftsss.test_nft.2",
+			"ugnot",
+			1000,
+			24,
+		)
+		urequire.NoError(t, err, "Should create ticket successfully")
+
+		ticket, err := GetTicket(ticketID)
+		urequire.NoError(t, err)
+		uassert.Equal(t, "gno.land/r/test/nftsss.test_nft.2", ticket.AssetIn.NFTPath)
+		uassert.Equal(t, "ugnot", ticket.AssetOut.Denom)
+		uassert.Equal(t, uint64(1000), ticket.MinAmountOut)
+
+		owner, err := nft.OwnerOf("2")
+		urequire.NoError(t, err)
+		uassert.Equal(t, contractAddr, owner, "NFT should be transferred to contract")
+	}
+}
+
+func TestBuyNFT(t *testing.T) {
+	std.TestSetRealm(std.NewCodeRealm("gno.land/r/test/nfts"))
+	
+	token, ledger := grc20.NewToken("Test Token", "TT", 6)
+	tokenhub.RegisterToken(token.Getter(), "test_token")
+	nft := grc721.NewBasicNFT("Test NFT", "TNFT")
+	tokenhub.RegisterNFT(nft.Getter(), "test_nft", "1")
+
+	contractAddr := std.DerivePkgAddr("gno.land/r/matijamarjanovic/gnoxchange")
+
+	err := nft.Mint(std.CurrentRealm().Addr(), "1")
+	tokenhub.RegisterNFT(nft.Getter(), "test_nft", "1")
+	urequire.NoError(t, err)
+	
+	err = nft.Approve(contractAddr, "1")
+	urequire.NoError(t, err)
+
+	ticketID, err := CreateNFTToTokenTicket(
+		"gno.land/r/test/nfts.test_nft.1",
+		"gno.land/r/test/nfts.test_token",
+		1000,
+		24,
+	)
+	urequire.NoError(t, err)
+
+	std.TestSetRealm(std.NewCodeRealm("gno.land/r/test/nftss"))
+
+	{
+		err = BuyNFT(ticketID, 500)
+		uassert.Error(t, err, "Should fail with insufficient payment")
+	}
+
+	{
+		ledger.Mint(std.CurrentRealm().Addr(), 2000)
+		teller := token.CallerTeller()
+		err = teller.Approve(contractAddr, 1000)
+		urequire.NoError(t, err)
+
+		err = BuyNFT(ticketID, 1000)
+		urequire.NoError(t, err, "Should buy NFT successfully")
+
+		owner, err := nft.OwnerOf("1")
+		urequire.NoError(t, err)
+		uassert.Equal(t, std.CurrentRealm().Addr(), owner, "NFT should be transferred to buyer")
+
+		ticket, err := GetTicket(ticketID)
+		urequire.NoError(t, err)
+		uassert.Equal(t, "fulfilled", ticket.Status)
+	}
 }
