@@ -44,9 +44,9 @@ func RenderHome() string {
 
 	str += md.H2("Navigation")
 	links := []string{
-		md.Link("Liquidity Pools", "http://localhost:8888/r/matijamarjanovic/gnoxchange:pools") + " - View and interact with liquidity pools", // TODO: change to gno.land
-		md.Link("Ticket System", "http://localhost:8888/r/matijamarjanovic/gnoxchange:ticketing") + " - Create and manage swap tickets",       // TODO: change to gno.land
-		md.Link("NFT Market", "http://localhost:8888/r/matijamarjanovic/gnoxchange:nftmarket") + " - Create and manage NFT tickets",           // TODO: change to gno.land
+		"[Liquidity Pools](/r/matijamarjanovic/gnoxchange:pools) - View and interact with liquidity pools", // TODO: change to gno.land
+		"[Ticket System](/r/matijamarjanovic/gnoxchange:ticketing) - Create and manage swap tickets",       // TODO: change to gno.land
+		"[NFT Market](/r/matijamarjanovic/gnoxchange:nftmarket) - Create and manage NFT tickets",           // TODO: change to gno.land
 	}
 	str += md.BulletList(links)
 
@@ -59,7 +59,7 @@ func RenderHome() string {
 	str += md.BulletList(stats)
 
 	str += md.Paragraph("")
-	str += md.Paragraph(md.Link("Ticket History", "http://localhost:8888/r/matijamarjanovic/gnoxchange:ticketHistory"))
+	str += md.Paragraph("[Ticket History](/r/matijamarjanovic/gnoxchange:ticketHistory) - View all tickets (including expired, fulfilled, and cancelled).")
 
 	str += md.HorizontalRule()
 	str += md.Paragraph("Start by exploring the available pools or creating a new swap ticket.")
