@@ -7,7 +7,7 @@ import (
 
 	"gno.land/p/demo/ufmt"
 	"gno.land/p/moul/md"
-	"gno.land/r/demo/tokenhub"
+	"gno.land/r/matijamajranovic/tokenhub"
 )
 
 var statusEmojis = map[string]string{

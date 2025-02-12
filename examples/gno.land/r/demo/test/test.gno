@@ -2,7 +2,7 @@ package test
 
 import (
 	"gno.land/p/demo/grc/grc20"
-	"gno.land/r/demo/tokenhub"
+	"gno.land/r/matijamajranovic/tokenhub"
 )
 
 func Test() {

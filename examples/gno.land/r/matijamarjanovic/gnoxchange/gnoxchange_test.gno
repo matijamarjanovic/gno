@@ -8,7 +8,7 @@ import (
 	"gno.land/p/demo/grc/grc721"
 	"gno.land/p/demo/uassert"
 	"gno.land/p/demo/urequire"
-	"gno.land/r/demo/tokenhub"
+	"gno.land/r/matijamajranovic/tokenhub"
 )
 
 func TestCreatePool(t *testing.T) {

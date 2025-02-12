@@ -8,7 +8,7 @@ import (
 	"gno.land/p/demo/avl/pager"
 	"gno.land/p/demo/grc/grc20"
 	"gno.land/p/demo/ufmt"
-	"gno.land/r/demo/tokenhub"
+	"gno.land/r/matijamajranovic/tokenhub"
 )
 
 var (

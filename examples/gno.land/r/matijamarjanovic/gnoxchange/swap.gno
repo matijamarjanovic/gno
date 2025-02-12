@@ -6,7 +6,7 @@ import (
 	"std"
 
 	"gno.land/p/demo/ufmt"
-	"gno.land/r/demo/tokenhub"
+	"gno.land/r/matijamajranovic/tokenhub"
 )
 
 const (
