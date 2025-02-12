@@ -136,8 +136,8 @@ func (p *Pool) GetSharePercentage(address std.Address) float64 {
 	return float64(lpBalance) / float64(p.totalSupplyLp) * 100
 }
 
-func GetPoolsPage(path string, pageSize int) *pager.Page {
-	pager := pager.NewPager(poolRegistry.pools, pageSize, false)
+func GetPoolsPage(path string) *pager.Page {
+	pager := pager.NewPager(poolRegistry.pools, 5, false)
 	return pager.MustGetPageByPath(path)
 }
 
@@ -164,8 +164,8 @@ func GetPoolInfo(poolKey string) (string, string, uint64, uint64, error) {
 }
 
 // GetPoolsPageInfo returns detailed information about pools for the given page
-func GetPoolsPageInfo(path string, pageSize int) ([]PoolInfo, string, error) {
-	pager := pager.NewPager(poolRegistry.pools, pageSize, false)
+func GetPoolsPageInfo(path string) ([]PoolInfo, string, error) {
+	pager := pager.NewPager(poolRegistry.pools, 5, false)
 	page := pager.MustGetPageByPath(path)
 	pools := make([]PoolInfo, 0, len(page.Items))
 
@@ -200,8 +200,8 @@ func GetPoolsPageInfo(path string, pageSize int) ([]PoolInfo, string, error) {
 
 // GetPoolsPageInfoString returns a string representation of pool information for the given page
 // e.g. poolsStr, err := GetPoolsPageInfoString("?page=1&size=10")
-func GetPoolsPageInfoString(path string, pageSize int) (string, error) {
-	pager := pager.NewPager(poolRegistry.pools, pageSize, false)
+func GetPoolsPageInfoString(path string) (string, error) {
+	pager := pager.NewPager(poolRegistry.pools, 5, false)
 	page := pager.MustGetPageByPath(path)
 	var result string
 

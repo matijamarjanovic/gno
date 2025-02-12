@@ -356,14 +356,14 @@ func GetTicket(ticketID string) (*Ticket, error) {
 }
 
 // GetAllTickets returns a paginated list of all tickets.
-func GetAllTickets(path string, pageSize int) *pager.Page {
-	pager := pager.NewPager(ticketRegistry.allTickets, pageSize, true)
+func GetAllTickets(path string) *pager.Page {
+	pager := pager.NewPager(ticketRegistry.allTickets, 5, true)
 	return pager.MustGetPageByPath(path)
 }
 
 // GetOpenTickets returns a paginated list of open, non-expired tickets.
-func GetOpenTickets(path string, pageSize int) *pager.Page {
-	pager := pager.NewPager(ticketRegistry.openTickets, pageSize, true)
+func GetOpenTickets(path string) *pager.Page {
+	pager := pager.NewPager(ticketRegistry.openTickets, 5, true)
 	return pager.MustGetPageByPath(path)
 }
 
@@ -382,8 +382,8 @@ func GetAllNFTTickets(path string) *pager.Page {
 	return pager.MustGetPageByPath(path)
 }
 
-func GetOpenNFTTickets(path string, pageSize int) *pager.Page {
-	pager := pager.NewPager(ticketRegistry.openNFTTickets, pageSize, true)
+func GetOpenNFTTickets(path string) *pager.Page {
+	pager := pager.NewPager(ticketRegistry.openNFTTickets, 5, true)
 	return pager.MustGetPageByPath(path)
 }
 
@@ -433,5 +433,92 @@ func updateTicketStatus(ticket *Ticket, newStatus string) {
 		} else {
 			ticketRegistry.openTickets.Remove(ticket.ID)
 		}
+	}
+}
+
+// GetTicketsPageInfoString returns a string representation of ticket information for the given page
+// e.g. ticketsStr, err := GetTicketsPageInfoString("?page=1&size=10")
+func GetTicketsPageInfoString(path string) (string, error) {
+	pager := pager.NewPager(ticketRegistry.allTickets, 5, true)
+	page := pager.MustGetPageByPath(path)
+	var result string
+
+	for _, item := range page.Items {
+		ticket := item.Value.(*Ticket)
+
+		assetInInfo := getDetailedAssetInfo(ticket.AssetIn)
+		assetOutInfo := getDetailedAssetInfo(ticket.AssetOut)
+
+		info := ufmt.Sprintf("%s>Creator:%s,AssetIn:{%s},AssetOut:{%s},AmountIn:%d,MinAmountOut:%d,CreatedAt:%s,ExpiresAt:%s,Status:%s;",
+			ticket.ID,
+			ticket.Creator,
+			assetInInfo,
+			assetOutInfo,
+			ticket.AmountIn,
+			ticket.MinAmountOut,
+			ticket.CreatedAt.String(),
+			ticket.ExpiresAt.String(),
+			ticket.Status,
+		)
+		result += info
+	}
+
+	return result, nil
+}
+
+// GetOpenTicketsPageInfoString returns a string representation of open ticket information for the given page
+// e.g. ticketsStr, err := GetOpenTicketsPageInfoString("?page=1&size=10")
+func GetOpenTicketsPageInfoString(path string) (string, error) {
+	pager := pager.NewPager(ticketRegistry.openTickets, 5, true)
+	page := pager.MustGetPageByPath(path)
+	var result string
+
+	for _, item := range page.Items {
+		ticket := item.Value.(*Ticket)
+
+		assetInInfo := getDetailedAssetInfo(ticket.AssetIn)
+		assetOutInfo := getDetailedAssetInfo(ticket.AssetOut)
+
+		info := ufmt.Sprintf("%s>Creator:%s,AssetIn:{%s},AssetOut:{%s},AmountIn:%d,MinAmountOut:%d,CreatedAt:%s,ExpiresAt:%s,Status:%s;",
+			ticket.ID,
+			ticket.Creator,
+			assetInInfo,
+			assetOutInfo,
+			ticket.AmountIn,
+			ticket.MinAmountOut,
+			ticket.CreatedAt.String(),
+			ticket.ExpiresAt.String(),
+			ticket.Status,
+		)
+		result += info
+	}
+
+	return result, nil
+}
+
+// Helper function to get detailed asset information including token metadata when applicable
+func getDetailedAssetInfo(asset Asset) string {
+	switch asset.Type {
+	case AssetTypeCoin:
+		return ufmt.Sprintf("Type:coin,Denom:%s", asset.Denom)
+	case AssetTypeToken:
+		token := tokenhub.GetToken(asset.Token)
+		if token == nil {
+			return ufmt.Sprintf("Type:token,Path:%s,Error:TokenNotFound", asset.Token)
+		}
+		return ufmt.Sprintf("Type:token,Path:%s,Name:%s,Symbol:%s,Decimals:%d",
+			asset.Token,
+			token.GetName(),
+			token.GetSymbol(),
+			token.GetDecimals(),
+		)
+	case AssetTypeNFT:
+		nft := tokenhub.GetNFT(asset.NFTPath)
+		if nft == nil {
+			return ufmt.Sprintf("Type:nft,Path:%s,Error:NFTNotFound", asset.NFTPath)
+		}
+		return ufmt.Sprintf("Type:nft,TokenhubPath:%s", asset.NFTPath)
+	default:
+		return "Type:unknown"
 	}
 }
