@@ -203,6 +203,14 @@ func GetOpenNFTTicketsPageInfoString(path string) (string, error) {
 	return result, nil
 }
 
+func GetOpenTicketsCount() int {
+	return ticketRegistry.openTickets.Size()
+}
+
+func GetOpenNFTTicketsCount() int {
+	return ticketRegistry.openNFTTickets.Size()
+}
+
 // --------------------------------------------- Pool Getters ---------------------------------------------
 
 func (p *Pool) GetLPBalance(address std.Address) uint64 {
@@ -232,6 +240,10 @@ func GetAllPoolNames() []string {
 	})
 
 	return poolNames
+}
+
+func GetAllPoolNamesCount() int {
+	return poolRegistry.pools.Size()
 }
 
 // GetPoolInfo returns basic information about a specific pool

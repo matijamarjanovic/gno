@@ -25,19 +25,19 @@ func Render(path string) string {
 
 	switch basePath {
 	case "ticketing":
-		return RenderTickets(path)
+		return renderTickets(path)
 	case "ticketHistory":
-		return RenderTicketHistory(path)
+		return renderTicketHistory(path)
 	case "nftmarket":
-		return RenderNFTMarket(path)
+		return renderNFTMarket(path)
 	case "pools":
-		return RenderPools(path)
+		return renderPools(path)
 	default:
-		return RenderHome()
+		return renderHome()
 	}
 }
 
-func RenderHome() string {
+func renderHome() string {
 	var str string
 	str += md.H1("GnoXchange")
 	str += md.Paragraph("Welcome to GnoXchange - Decentralized token exchange system on Gno.land")
@@ -52,9 +52,9 @@ func RenderHome() string {
 
 	str += md.H2("Quick Stats")
 	stats := []string{
-		ufmt.Sprintf("Total Pools: %d", len(GetAllPoolNames())),
-		ufmt.Sprintf("Open Tickets: %d", len(GetOpenTickets("").Items)),
-		ufmt.Sprintf("Total NFTs for sale: %d", len(GetOpenNFTTickets("").Items)),
+		ufmt.Sprintf("Total Pools: %d", GetAllPoolNamesCount()),
+		ufmt.Sprintf("Open Tickets: %d", GetOpenTicketsCount()),
+		ufmt.Sprintf("Total NFTs for sale: %d", GetOpenNFTTicketsCount()),
 	}
 	str += md.BulletList(stats)
 
@@ -67,7 +67,7 @@ func RenderHome() string {
 	return str
 }
 
-func RenderTickets(path string) string {
+func renderTickets(path string) string {
 	var str string
 	str += md.H2("Ticket System")
 	str += md.Paragraph("View all open tickets for coin and token swaps.")
@@ -135,7 +135,7 @@ func RenderTickets(path string) string {
 	return str
 }
 
-func RenderNFTMarket(path string) string {
+func renderNFTMarket(path string) string {
 	var str string
 	str += md.H2("NFT Market")
 	str += md.Paragraph("View all NFT tickets for sale.")
@@ -191,7 +191,7 @@ func RenderNFTMarket(path string) string {
 	return str
 }
 
-func RenderPools(path string) string {
+func renderPools(path string) string {
 	var str string
 	str += md.H2("Available Pools")
 	str += md.Paragraph("View and interact with liquidity pools.")
@@ -238,7 +238,7 @@ func RenderPools(path string) string {
 	return str
 }
 
-func RenderTicketHistory(path string) string {
+func renderTicketHistory(path string) string {
 	var str string
 	str += md.H2("Ticket History")
 	str += md.Paragraph("View all tickets (including expired, fulfilled, and cancelled).")
