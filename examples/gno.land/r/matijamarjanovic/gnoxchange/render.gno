@@ -53,8 +53,8 @@ func RenderHome() string {
 	str += md.H2("Quick Stats")
 	stats := []string{
 		ufmt.Sprintf("Total Pools: %d", len(GetAllPoolNames())),
-		ufmt.Sprintf("Open Tickets: %d", len(GetOpenTickets("").Items)),
-		ufmt.Sprintf("Total NFTs for sale: %d", len(GetOpenNFTTickets("").Items)),
+		ufmt.Sprintf("Open Tickets: %d", len(GetOpenTickets("", 5).Items)),
+		ufmt.Sprintf("Total NFTs for sale: %d", len(GetOpenNFTTickets("", 5).Items)),
 	}
 	str += md.BulletList(stats)
 
@@ -140,7 +140,7 @@ func RenderNFTMarket(path string) string {
 	str += md.H2("NFT Market")
 	str += md.Paragraph("View all NFT tickets for sale.")
 
-	page := GetOpenNFTTickets(path)
+	page := GetOpenNFTTickets(path, 5)
 	if len(page.Items) == 0 {
 		str += md.Blockquote("No NFTs available for sale.")
 		return str
@@ -196,7 +196,7 @@ func RenderPools(path string) string {
 	str += md.H2("Available Pools")
 	str += md.Paragraph("View and interact with liquidity pools.")
 
-	page := GetPoolsPage(path)
+	page := GetPoolsPage(path, 5)
 	if len(page.Items) == 0 {
 		str += md.Blockquote("No pools available.")
 		return str
@@ -243,7 +243,7 @@ func RenderTicketHistory(path string) string {
 	str += md.H2("Ticket History")
 	str += md.Paragraph("View all tickets (including expired, fulfilled, and cancelled).")
 
-	page := GetAllTickets(path)
+	page := GetAllTickets(path, 5)
 	if len(page.Items) == 0 {
 		str += md.Blockquote("No tickets available.")
 		return str

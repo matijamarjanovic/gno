@@ -356,14 +356,14 @@ func GetTicket(ticketID string) (*Ticket, error) {
 }
 
 // GetAllTickets returns a paginated list of all tickets.
-func GetAllTickets(path string) *pager.Page {
-	pager := pager.NewPager(ticketRegistry.allTickets, 10, true)
+func GetAllTickets(path string, pageSize int) *pager.Page {
+	pager := pager.NewPager(ticketRegistry.allTickets, pageSize, true)
 	return pager.MustGetPageByPath(path)
 }
 
 // GetOpenTickets returns a paginated list of open, non-expired tickets.
-func GetOpenTickets(path string) *pager.Page {
-	pager := pager.NewPager(ticketRegistry.openTickets, 10, true)
+func GetOpenTickets(path string, pageSize int) *pager.Page {
+	pager := pager.NewPager(ticketRegistry.openTickets, pageSize, true)
 	return pager.MustGetPageByPath(path)
 }
 
@@ -382,8 +382,8 @@ func GetAllNFTTickets(path string) *pager.Page {
 	return pager.MustGetPageByPath(path)
 }
 
-func GetOpenNFTTickets(path string) *pager.Page {
-	pager := pager.NewPager(ticketRegistry.openNFTTickets, 10, true)
+func GetOpenNFTTickets(path string, pageSize int) *pager.Page {
+	pager := pager.NewPager(ticketRegistry.openNFTTickets, pageSize, true)
 	return pager.MustGetPageByPath(path)
 }
 

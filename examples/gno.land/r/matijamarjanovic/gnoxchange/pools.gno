@@ -15,10 +15,6 @@ var (
 	poolPager *pager.Pager
 )
 
-func init() {
-	poolPager = pager.NewPager(poolRegistry.pools, 3, false)
-}
-
 // CreatePool is the public function that handles validation and security checks before creating a pool.
 // Since it is possible for tokens to have different decimals, it is the lowest amount of both tokens
 // is the lowest ammount of the one with less decimals.
@@ -140,8 +136,9 @@ func (p *Pool) GetSharePercentage(address std.Address) float64 {
 	return float64(lpBalance) / float64(p.totalSupplyLp) * 100
 }
 
-func GetPoolsPage(path string) *pager.Page {
-	return poolPager.MustGetPageByPath(path)
+func GetPoolsPage(path string, pageSize int) *pager.Page {
+	pager := pager.NewPager(poolRegistry.pools, pageSize, false)
+	return pager.MustGetPageByPath(path)
 }
 
 func GetAllPoolNames() []string {
@@ -167,8 +164,9 @@ func GetPoolInfo(poolKey string) (string, string, uint64, uint64, error) {
 }
 
 // GetPoolsPageInfo returns detailed information about pools for the given page
-func GetPoolsPageInfo(path string) ([]PoolInfo, string, error) {
-	page := poolPager.MustGetPageByPath(path)
+func GetPoolsPageInfo(path string, pageSize int) ([]PoolInfo, string, error) {
+	pager := pager.NewPager(poolRegistry.pools, pageSize, false)
+	page := pager.MustGetPageByPath(path)
 	pools := make([]PoolInfo, 0, len(page.Items))
 
 	for _, item := range page.Items {
@@ -202,8 +200,9 @@ func GetPoolsPageInfo(path string) ([]PoolInfo, string, error) {
 
 // GetPoolsPageInfoString returns a string representation of pool information for the given page
 // e.g. poolsStr, err := GetPoolsPageInfoString("?page=1&size=10")
-func GetPoolsPageInfoString(path string) (string, error) {
-	page := poolPager.MustGetPageByPath(path)
+func GetPoolsPageInfoString(path string, pageSize int) (string, error) {
+	pager := pager.NewPager(poolRegistry.pools, pageSize, false)
+	page := pager.MustGetPageByPath(path)
 	var result string
 
 	for _, item := range page.Items {
